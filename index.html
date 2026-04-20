@@ -68,16 +68,27 @@
     let clientes = [];
 
     async function cargarDatos() {
-        document.getElementById('statusCarga').style.display = 'block';
-        try {
-            const res = await fetch(WEB_APP_URL, { redirect: "follow" });
-            const data = await res.json();
+    const loader = document.getElementById('statusCarga');
+    if (loader) loader.style.display = 'block';
+    try {
+        // El parámetro redirect: "follow" es vital para que Google responda
+        const res = await fetch(WEB_APP_URL, { 
+            method: "GET",
+            redirect: "follow" 
+        });
+        const data = await res.json();
+        if(data) {
             clientes = data;
             actualizarVista();
-        } catch (e) {
-            clientes = JSON.parse(localStorage.getItem('backup_clientes')) || [];
-            actualizarVista();
         }
+    } catch (e) {
+        console.error("Error:", e);
+        // Usa los datos guardados en el celular si la red falla
+        clientes = JSON.parse(localStorage.getItem('backup_clientes')) || [];
+        actualizarVista();
+    }
+    if (loader) loader.style.display = 'none';
+}
         document.getElementById('statusCarga').style.display = 'none';
     }
 
