@@ -27,19 +27,19 @@
 <body>
 
 <div class="container">
-    <h2>Panel de Control</h2>
+    <h2>Panel de Control Cloud</h2>
     <div id="statusCarga" class="loading">⏳ Conectando con Google Sheets...</div>
     
     <div class="form-grid">
         <input type="hidden" id="editIndex" value="-1">
-        <input type="text" id="nombre" placeholder="Nombre">
-        <input type="tel" id="telefono" placeholder="WhatsApp">
+        <input type="text" id="nombre" placeholder="Nombre del Cliente">
+        <input type="tel" id="telefono" placeholder="WhatsApp (ej: 504...)">
         <input type="text" id="direccion" placeholder="Dirección">
-        <input type="text" id="plan" placeholder="Plan">
+        <input type="text" id="plan" placeholder="Plan contratado">
         <input type="number" id="precio" placeholder="Precio ($)">
         <select id="fechaPago">
-            <option value="1">Día 1</option>
-            <option value="15">Día 15</option>
+            <option value="1">Día de Corte: 1</option>
+            <option value="15">Día de Corte: 15</option>
         </select>
         <button id="btnPrincipal" class="btn-guardar" onclick="procesarCliente()">💾 Guardar y Sincronizar</button>
     </div>
@@ -54,9 +54,9 @@
         <thead>
             <tr>
                 <th>Nombre</th>
-                <th>Plan</th>
+                <th>Plan ($)</th>
                 <th>Corte</th>
-                <th>Estado</th>
+                <th>Estado Pago</th>
                 <th>Acciones</th>
             </tr>
         </thead>
@@ -71,7 +71,7 @@
 </div>
 
 <script>
-    // URL Actualizada según tu última implementación
+    // URL DE TU SCRIPT DE GOOGLE (ACTUALIZADA)
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwhtE3Fqiqrv29SzUWGC3yZrvxe3rc4W2PaO710NLu4E8ZnWn1bjtVHz9Q19ovudbLx/exec";
     
     let clientes = [];
@@ -79,30 +79,28 @@
 
     async function cargarDatos() {
         const status = document.getElementById('statusCarga');
-        status.innerText = "⏳ Conectando con Google Sheets...";
         status.style.display = 'block';
 
         try {
-            // Se usa mode: 'cors' y redirect: 'follow' para máxima compatibilidad
-            const response = await fetch(WEB_APP_URL, {
+            // El parámetro redirect: 'follow' es obligatorio para Google Apps Script
+            const response = await fetch(WEB_APP_URL, { 
                 method: 'GET',
-                mode: 'cors',
-                redirect: 'follow'
+                redirect: 'follow' 
             });
 
-            if (!response.ok) throw new Error("Error en la respuesta del servidor");
+            if (!response.ok) throw new Error("Error en servidor");
 
-            clientes = await response.json();
-            console.log("Datos recibidos:", clientes);
+            const data = await response.json();
+            clientes = data;
             actualizarVista();
             status.style.display = 'none';
         } catch (error) {
-            console.error("Fallo de conexión:", error);
-            status.innerText = "❌ Error de conexión. Usando datos locales.";
+            console.error("Error cargando datos:", error);
+            // Si falla la red, intenta cargar lo que se guardó la última vez en este navegador
             clientes = JSON.parse(localStorage.getItem('backup_clientes')) || [];
             actualizarVista();
-            // El mensaje desaparece tras 3 segundos si falló la nube
-            setTimeout(() => { status.style.display = 'none'; }, 3000);
+            status.innerText = "⚠️ Error de conexión. Usando datos locales.";
+            setTimeout(() => { status.style.display = 'none'; }, 4000);
         }
     }
 
@@ -111,7 +109,7 @@
         const precio = parseFloat(document.getElementById('precio').value);
         const telefono = document.getElementById('telefono').value;
 
-        if(!nombre || isNaN(precio)) return alert("Por favor completa los campos.");
+        if(!nombre || isNaN(precio)) return alert("Nombre y Precio son obligatorios.");
 
         const nuevoCliente = {
             id: Date.now(),
@@ -126,13 +124,12 @@
         };
 
         document.getElementById('statusCarga').style.display = 'block';
-        document.getElementById('statusCarga').innerText = "📤 Guardando en la nube...";
+        document.getElementById('statusCarga').innerText = "📤 Sincronizando...";
 
         try {
-            // Guardar en Sheets sin bloquear la interfaz
             await fetch(WEB_APP_URL, {
                 method: "POST",
-                mode: "no-cors", 
+                mode: "no-cors", // Requerido para evitar errores de seguridad al enviar
                 body: JSON.stringify(nuevoCliente)
             });
             
@@ -140,11 +137,12 @@
             actualizarVista();
             limpiarFormulario();
         } catch (e) {
-            alert("Error al guardar. Se guardará solo localmente.");
+            alert("Guardado localmente (error de red).");
             clientes.push(nuevoCliente);
             actualizarVista();
         }
         document.getElementById('statusCarga').style.display = 'none';
+        document.getElementById('statusCarga').innerText = "⏳ Conectando con Google Sheets...";
     }
 
     function actualizarVista() {
@@ -161,7 +159,7 @@
             
             cuerpo.innerHTML += `
                 <tr>
-                    <td>${c.nombre}</td>
+                    <td><b>${c.nombre}</b></td>
                     <td>${c.plan} ($${c.precio})</td>
                     <td>Día ${c.fechaPago}</td>
                     <td><button class="status-badge ${c.estadoPago.toLowerCase()}" onclick="cambiarEstado(${i})">${c.estadoPago}</button></td>
@@ -181,7 +179,7 @@
     }
 
     function enviarAviso(nombre, tel) {
-        const msg = encodeURIComponent(`Hola ${nombre}, te recordamos tu pago de internet.`);
+        const msg = encodeURIComponent(`Hola ${nombre}, te recordamos tu pago de internet mensual. ¡Gracias!`);
         window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
     }
 
@@ -189,11 +187,12 @@
         document.getElementById('nombre').value = '';
         document.getElementById('precio').value = '';
         document.getElementById('telefono').value = '';
+        document.getElementById('direccion').value = '';
+        document.getElementById('plan').value = '';
     }
 
     function filtrar(dia) { filtroActual = dia; actualizarVista(); }
 
-    // Ejecutar carga al abrir
     window.onload = cargarDatos;
 </script>
 </body>
