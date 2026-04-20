@@ -27,6 +27,7 @@
         
         .btn-group-form { grid-column: 1 / -1; display: flex; gap: 10px; }
         .btn-principal { background: #1a73e8; color: white; font-weight: bold; flex: 2; border: none; cursor: pointer; height: 45px; }
+        .btn-principal:disabled { background: #ccc; cursor: not-allowed; }
         .btn-limpiar { background: #5f6368; color: white; flex: 1; border: none; cursor: pointer; }
 
         .controls { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
@@ -42,7 +43,7 @@
         .pagado { background: #e6f4ea; color: #1e7e34; }
         .no-pagado { background: #fce8e6; color: #d93025; }
         .btn-accion { padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer; margin-right: 2px; }
-        .loading { text-align: center; color: #f4b400; display: none; padding: 10px; font-weight: bold; }
+        .loading { text-align: center; color: #f4b400; display: none; padding: 10px; font-weight: bold; border: 1px solid #f4b400; border-radius: 8px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -67,10 +68,10 @@
         <div class="card pendiente"><span>POR COBRAR</span><div id="montoPendiente">$0</div></div>
     </div>
 
-    <div id="statusCarga" class="loading">⏳ Sincronizando con base de datos...</div>
+    <div id="statusCarga" class="loading">⏳ Procesando... Por favor espera.</div>
 
     <div class="form-grid">
-        <input type="hidden" id="editIndex" value="-1">
+        <input type="hidden" id="editId" value="">
         <input type="text" id="nombre" placeholder="Nombre completo">
         <input type="tel" id="telefono" placeholder="WhatsApp">
         <input type="text" id="direccion" placeholder="Dirección">
@@ -123,16 +124,17 @@
     document.getElementById('mesSeleccionado').value = meses[new Date().getMonth()];
 
     async function cargarDatos() {
-        document.getElementById('statusCarga').style.display = 'block';
+        mostrarCarga(true);
         try {
             const res = await fetch(`${WEB_APP_URL}?t=${Date.now()}`);
             clientes = await res.json();
             actualizarVista();
         } catch (e) {
+            console.error("Error de carga", e);
             clientes = JSON.parse(localStorage.getItem('backup_newlink')) || [];
             actualizarVista();
         }
-        document.getElementById('statusCarga').style.display = 'none';
+        mostrarCarga(false);
     }
 
     function cambiarFiltro(val, btn) {
@@ -159,31 +161,33 @@
             const cumpleDia = (filtroActivo === 'todos' || filtroActivo === 'Pendiente' || c.fechaPago == filtroActivo);
             const cumpleEstado = (filtroActivo !== 'Pendiente' || !estaPagado);
 
-            cant++;
-            t += precio;
-            if(estaPagado) p += precio; else pen += precio;
+            if (cumpleBusqueda) {
+                cant++;
+                t += precio;
+                if(estaPagado) p += precio; else pen += precio;
 
-            if (cumpleBusqueda && cumpleDia && cumpleEstado) {
-                cuerpo.innerHTML += `
-                    <tr>
-                        <td><b>${c.nombre}</b><br><small style="color:gray">${c.direccion || ''}</small></td>
-                        <td>${c.telefono}</td>
-                        <td>$${precio}</td>
-                        <td>Día ${c.fechaPago}</td>
-                        <td>
-                            <button class="status-badge ${estaPagado ? 'pagado' : 'no-pagado'}" 
-                                onclick="togglePago(${i}, '${mesFiltro}')">
-                                ${estaPagado ? 'PAGADO' : 'PENDIENTE'}
-                            </button>
-                        </td>
-                        <td>${c.plan || '-'}</td>
-                        <td>
-                            <button class="btn-accion" title="Recibo" onclick="generarRecibo(${i})">📄</button>
-                            <button class="btn-accion" title="Editar" onclick="editar(${i})">✏️</button>
-                            <button class="btn-accion" title="WhatsApp" onclick="enviarWA(${i})">📲</button>
-                            <button class="btn-accion" style="color:red" title="Eliminar" onclick="eliminarUsuario(${i})">🗑️</button>
-                        </td>
-                    </tr>`;
+                if (cumpleDia && cumpleEstado) {
+                    cuerpo.innerHTML += `
+                        <tr>
+                            <td><b>${c.nombre}</b><br><small style="color:gray">${c.direccion || ''}</small></td>
+                            <td>${c.telefono}</td>
+                            <td>$${precio}</td>
+                            <td>Día ${c.fechaPago}</td>
+                            <td>
+                                <button class="status-badge ${estaPagado ? 'pagado' : 'no-pagado'}" 
+                                    onclick="togglePago(${i}, '${mesFiltro}')">
+                                    ${estaPagado ? 'PAGADO' : 'PENDIENTE'}
+                                </button>
+                            </td>
+                            <td>${c.plan || '-'}</td>
+                            <td>
+                                <button class="btn-accion" onclick="generarRecibo(${i})">📄</button>
+                                <button class="btn-accion" onclick="editar(${i})">✏️</button>
+                                <button class="btn-accion" onclick="enviarWA(${i})">📲</button>
+                                <button class="btn-accion" style="color:red" onclick="eliminarUsuario(${i})">🗑️</button>
+                            </td>
+                        </tr>`;
+                }
             }
         });
 
@@ -194,82 +198,74 @@
         localStorage.setItem('backup_newlink', JSON.stringify(clientes));
     }
 
-    // ACTUALIZA EL PAGO AUTOMÁTICAMENTE EN LA BASE DE DATOS
     async function togglePago(i, mes) {
-        let lista = (clientes[i].ultimoMesPago || "").split(",").filter(x => x);
-        lista.includes(mes) ? lista = lista.filter(x => x !== mes) : lista.push(mes);
-        clientes[i].ultimoMesPago = lista.join(",");
-        
-        actualizarVista(); // Cambio visual instantáneo
-        
-        // Envío automático a la base de datos
-        document.getElementById('statusCarga').style.display = 'block';
-        await fetch(WEB_APP_URL, { 
-            method: "POST", 
-            mode: "no-cors", 
-            body: JSON.stringify({ action: "upsert", ...clientes[i] }) 
-        });
-        document.getElementById('statusCarga').style.display = 'none';
+        const cliente = clientes[i];
+        let lista = (cliente.ultimoMesPago || "").split(",").filter(x => x);
+        const yaPagado = lista.includes(mes);
+
+        if (yaPagado) {
+            lista = lista.filter(x => x !== mes);
+        } else {
+            lista.push(mes);
+        }
+
+        const nuevoEstado = lista.join(",");
+        const backupEstado = cliente.ultimoMesPago;
+        cliente.ultimoMesPago = nuevoEstado;
+
+        actualizarVista(); // Cambio visual inmediato
+        mostrarCarga(true);
+
+        try {
+            const res = await fetch(WEB_APP_URL, { 
+                method: "POST", 
+                mode: "no-cors", 
+                body: JSON.stringify({ action: "upsert", ...cliente }) 
+            });
+        } catch (error) {
+            alert("Error al guardar el pago. Reintentando...");
+            cliente.ultimoMesPago = backupEstado;
+            actualizarVista();
+        }
+        mostrarCarga(false);
     }
 
-    function generarRecibo(i) {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const c = clientes[i];
-        const mes = document.getElementById('mesSeleccionado').value;
-
-        doc.setFontSize(20);
-        doc.text("NEWLINK WIRELESS", 20, 20);
-        doc.setFontSize(10);
-        doc.text(`Recibo: ${mes.toUpperCase()}-${c.nombre.substring(0,3).toUpperCase()}`, 140, 20);
-        doc.line(20, 25, 190, 25);
-        
-        doc.setFontSize(12);
-        doc.text(`Cliente: ${c.nombre}`, 20, 40);
-        doc.text(`Plan: ${c.plan}`, 20, 50);
-        doc.text(`Mes: ${mes}`, 20, 60);
-        doc.setFont("helvetica", "bold");
-        doc.text(`Total Pagado: $${c.precio}`, 20, 80);
-        
-        doc.setFont("helvetica", "normal");
-        doc.text("Gracias por su pago.", 105, 100, { align: "center" });
-        doc.save(`Recibo_${c.nombre}.pdf`);
-    }
-
-    // SOLO PARA GUARDAR O ACTUALIZAR DATOS MAESTROS DEL CLIENTE
     async function procesarCliente() {
-        const idx = document.getElementById('editIndex').value;
+        const btn = document.getElementById('btnPrincipal');
+        const idExistente = document.getElementById('editId').value;
+        
         const c = {
             action: "upsert",
-            id: idx === "-1" ? Date.now() : clientes[idx].id,
-            nombre: document.getElementById('nombre').value,
+            id: idExistente || Date.now().toString(), // Mantiene ID si existe para no duplicar
+            nombre: document.getElementById('nombre').value.trim(),
             telefono: document.getElementById('telefono').value,
             direccion: document.getElementById('direccion').value,
             precio: document.getElementById('precio').value,
             plan: document.getElementById('plan').value,
             fechaPago: document.getElementById('fechaPago').value,
-            ultimoMesPago: idx === "-1" ? "" : clientes[idx].ultimoMesPago
+            ultimoMesPago: idExistente ? (clientes.find(cli => cli.id == idExistente)?.ultimoMesPago || "") : ""
         };
 
         if(!c.nombre) return alert("El nombre es obligatorio");
         
-        document.getElementById('statusCarga').style.display = 'block';
-        await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(c) });
-        
-        if(idx === "-1") {
-            clientes.push(c); 
-        } else {
-            clientes[idx] = c;
+        btn.disabled = true;
+        mostrarCarga(true);
+
+        try {
+            await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(c) });
+            await cargarDatos(); // Recarga limpia desde el servidor
+            limpiar();
+        } catch (e) {
+            alert("Error de conexión al guardar.");
+        } finally {
+            btn.disabled = false;
+            mostrarCarga(false);
         }
-        
-        limpiar();
-        actualizarVista();
-        document.getElementById('statusCarga').style.display = 'none';
     }
 
     function editar(i) {
         const c = clientes[i];
-        document.getElementById('editIndex').value = i;
+        document.getElementById('editId').value = c.id;
         document.getElementById('nombre').value = c.nombre;
         document.getElementById('telefono').value = c.telefono;
         document.getElementById('direccion').value = c.direccion;
@@ -280,36 +276,37 @@
         window.scrollTo(0,0);
     }
 
+    function mostrarCarga(show) {
+        document.getElementById('statusCarga').style.display = show ? 'block' : 'none';
+    }
+
+    function limpiar() {
+        document.getElementById('editId').value = "";
+        document.querySelectorAll('input').forEach(i => i.value = '');
+        document.getElementById('btnPrincipal').innerText = "💾 GUARDAR NUEVO CLIENTE";
+    }
+
+    function generarRecibo(i) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const c = clientes[i];
+        const mes = document.getElementById('mesSeleccionado').value;
+        doc.text("NEWLINK WIRELESS", 20, 20);
+        doc.text(`Recibo: ${mes.toUpperCase()} - ${c.nombre}`, 20, 40);
+        doc.text(`Monto: $${c.precio}`, 20, 50);
+        doc.save(`Recibo_${c.nombre}.pdf`);
+    }
+
     async function eliminarUsuario(i) {
-        if(!confirm("¿Eliminar este cliente definitivamente?")) return;
-        const id = clientes[i].id;
-        document.getElementById('statusCarga').style.display = 'block';
-        await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "delete", id: id }) });
-        clientes.splice(i, 1);
-        actualizarVista();
-        document.getElementById('statusCarga').style.display = 'none';
+        if(!confirm("¿Eliminar cliente?")) return;
+        mostrarCarga(true);
+        await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "delete", id: clientes[i].id }) });
+        await cargarDatos();
     }
 
     function enviarWA(i) {
         const c = clientes[i];
-        const msg = encodeURIComponent(`Hola ${c.nombre}, te saludamos de NewLink Wireless para confirmar tu pago pendiente de Internet.
-
-Puede realizar deposito o transferencia a las siguientes cuentas. 
-
-Número de cuenta BAC: 756950421
-
-Si usted ya realizo pago de servicio favor disculpar las molestias.
-
-Si realizara el pago del servicio por medio de trasferencia o deposito favor compartir comprobante de pago.
-
-Saludos. ¡Gracias por tu preferencia!`);
-        window.open(`https://wa.me/${c.telefono}?text=${msg}`, '_blank');
-    }
-
-    function limpiar() {
-        document.querySelectorAll('input').forEach(i => i.value = '');
-        document.getElementById('editIndex').value = "-1";
-        document.getElementById('btnPrincipal').innerText = "💾 GUARDAR NUEVO CLIENTE";
+        window.open(`https://wa.me/${c.telefono}?text=Hola%20${c.nombre},%20pago%20confirmado.`, '_blank');
     }
 
     window.onload = cargarDatos;
