@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Internet Cloud Pro + Recibos PDF</title>
+    <title>NewLink Wireless - Gestión Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; margin: 10px; background-color: #f0f2f5; color: #333; }
         .container { max-width: 1250px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         h2 { color: #1a73e8; margin: 0; }
         .selector-mes { background: #1a73e8; color: white; padding: 8px 15px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; }
-        
         .dashboard { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
         @media (min-width: 768px) { .dashboard { grid-template-columns: repeat(4, 1fr); } }
         .card { padding: 12px; border-radius: 10px; text-align: center; color: white; }
@@ -20,25 +19,17 @@
         .recaudado { background: #1e7e34; }
         .pendiente { background: #d93025; }
         .card div { font-size: 1.4em; font-weight: bold; }
-
         .form-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 25px; background: #f8f9fa; padding: 15px; border-radius: 10px; }
         @media (min-width: 768px) { .form-grid { grid-template-columns: repeat(3, 1fr); } }
         input, select, button { padding: 10px; border-radius: 6px; border: 1px solid #ddd; width: 100%; box-sizing: border-box; }
         .btn-principal { background: #1a73e8; color: white; font-weight: bold; grid-column: 1 / -1; height: 45px; border: none; cursor: pointer; }
-
-        .controls { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
-        .search-bar { padding: 12px; border-radius: 8px; border: 2px solid #1a73e8; width: 100%; box-sizing: border-box; }
-        .filter-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; }
-        .btn-filter { padding: 8px 16px; border: none; border-radius: 15px; background: #e8f0fe; color: #1a73e8; cursor: pointer; font-weight: bold; white-space: nowrap; }
-        .btn-filter.active { background: #1a73e8; color: white; }
-
+        .search-bar { padding: 12px; border-radius: 8px; border: 2px solid #1a73e8; width: 100%; margin-bottom: 10px; }
         .table-container { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; min-width: 1000px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
-        .status-badge { padding: 5px 10px; border-radius: 15px; font-size: 11px; font-weight: bold; border: none; cursor: pointer; min-width: 90px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        .status-badge { padding: 5px 10px; border-radius: 15px; font-size: 11px; font-weight: bold; border: none; cursor: pointer; }
         .pagado { background: #e6f4ea; color: #1e7e34; }
         .no-pagado { background: #fce8e6; color: #d93025; }
-        .btn-accion { padding: 6px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer; font-size: 14px; }
         .loading { text-align: center; color: #f4b400; display: none; padding: 10px; font-weight: bold; }
     </style>
 </head>
@@ -46,7 +37,7 @@
 
 <div class="container">
     <div class="header-flex">
-        <h2>Internet Cloud Pro</h2>
+        <h2>NewLink Wireless</h2>
         <select id="mesSeleccionado" class="selector-mes" onchange="actualizarVista()">
             <option value="Enero">Enero</option><option value="Febrero">Febrero</option>
             <option value="Marzo">Marzo</option><option value="Abril">Abril</option>
@@ -68,37 +59,29 @@
 
     <div class="form-grid">
         <input type="hidden" id="editIndex" value="-1">
-        <input type="text" id="nombre" placeholder="Nombre completo">
+        <input type="text" id="nombre" placeholder="Nombre">
         <input type="tel" id="telefono" placeholder="WhatsApp">
         <input type="text" id="direccion" placeholder="Dirección">
         <input type="number" id="precio" placeholder="Precio $">
-        <input type="text" id="plan" placeholder="Plan contratado">
+        <input type="text" id="plan" placeholder="Plan">
         <select id="fechaPago">
-            <option value="1">Día de pago: 1</option>
-            <option value="15">Día de pago: 15</option>
+            <option value="1">Día 1</option>
+            <option value="15">Día 15</option>
         </select>
-        <button id="btnPrincipal" class="btn-principal" onclick="procesarCliente()">💾 GUARDAR / ACTUALIZAR</button>
+        <button id="btnPrincipal" class="btn-principal" onclick="procesarCliente()">💾 GUARDAR Y SINCRONIZAR</button>
     </div>
 
-    <div class="controls">
-        <input type="text" id="buscador" class="search-bar" placeholder="🔍 Buscar cliente..." onkeyup="actualizarVista()">
-        <div class="filter-bar">
-            <button class="btn-filter active" onclick="filtrar('todos', this)">Todos</button>
-            <button class="btn-filter" onclick="filtrar('1', this)">Día 1</button>
-            <button class="btn-filter" onclick="filtrar('15', this)">Día 15</button>
-            <button class="btn-filter" onclick="filtrar('Pendiente', this)" style="color:red">Deudores</button>
-        </div>
-    </div>
+    <input type="text" id="buscador" class="search-bar" placeholder="🔍 Buscar cliente..." onkeyup="actualizarVista()">
 
     <div class="table-container">
         <table>
             <thead>
                 <tr>
-                    <th>Cliente</th>
-                    <th>WhatsApp</th>
+                    <th>Nombre</th>
+                    <th>Teléfono</th>
                     <th>Precio</th>
-                    <th>Corte</th>
-                    <th>Estado Pago</th>
+                    <th>Fecha Pago</th>
+                    <th>Estado</th>
                     <th>Plan</th>
                     <th>Acciones</th>
                 </tr>
@@ -111,72 +94,46 @@
 <script>
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzha-FI4ghQY-O8WkRvNN1jIhWjmNLCGxuMx9lvFvmTYtkkPFQrnoyfijX7dOqD0qhw/exec";
     let clientes = [];
-    let filtroDia = 'todos';
-    
-    const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-    document.getElementById('mesSeleccionado').value = meses[new Date().getMonth()];
 
     async function cargarDatos() {
         document.getElementById('statusCarga').style.display = 'block';
         try {
-            const res = await fetch(`${WEB_APP_URL}?t=${Date.now()}`, { redirect: "follow" });
+            const res = await fetch(WEB_APP_URL);
             clientes = await res.json();
             actualizarVista();
-        } catch (e) {
-            clientes = JSON.parse(localStorage.getItem('backup_clientes')) || [];
-            actualizarVista();
-        }
+        } catch (e) { console.error("Error cargando", e); }
         document.getElementById('statusCarga').style.display = 'none';
     }
 
-    function filtrar(val, btn) {
-        filtroDia = val;
-        document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        actualizarVista();
-    }
-
     function actualizarVista() {
-        localStorage.setItem('backup_clientes', JSON.stringify(clientes));
         const cuerpo = document.getElementById('cuerpoTabla');
-        cuerpo.innerHTML = ""; 
+        cuerpo.innerHTML = ""; // <--- CRÍTICO: LIMPIA ANTES DE DIBUJAR PARA EVITAR DUPLICADOS
         
         const busqueda = document.getElementById('buscador').value.toLowerCase();
-        const mesFiltro = document.getElementById('mesSeleccionado').value;
+        const mesActual = document.getElementById('mesSeleccionado').value;
         
         let t = 0, p = 0, pen = 0, cant = 0;
 
         clientes.forEach((c, i) => {
-            const listaMeses = (c.ultimoMesPago || "").split(",").filter(m => m !== "");
-            const estaPagado = listaMeses.includes(mesFiltro);
+            const pagado = (c.ultimoMesPago || "").includes(mesActual);
             const precio = parseFloat(c.precio) || 0;
 
-            const cumpleDia = (filtroDia === 'todos' || filtroDia === 'Pendiente' || c.fechaPago == filtroDia);
-            const cumpleEstado = (filtroDia !== 'Pendiente' || !estaPagado);
-            const cumpleBusqueda = c.nombre.toLowerCase().includes(busqueda);
+            if (c.nombre.toLowerCase().includes(busqueda)) {
+                cant++;
+                t += precio;
+                if(pagado) p += precio; else pen += precio;
 
-            cant++;
-            t += precio;
-            if(estaPagado) p += precio; else pen += precio;
-
-            if(cumpleDia && cumpleEstado && cumpleBusqueda) {
                 cuerpo.innerHTML += `
                     <tr>
-                        <td><b>${c.nombre}</b><br><small style="color:gray">${c.direccion || ''}</small></td>
+                        <td>${c.nombre}</td>
                         <td>${c.telefono}</td>
                         <td>$${precio}</td>
                         <td>Día ${c.fechaPago}</td>
-                        <td>
-                            <button class="status-badge ${estaPagado ? 'pagado' : 'no-pagado'}" 
-                                onclick="togglePago(${i}, '${mesFiltro}')">${estaPagado ? 'PAGADO' : 'PENDIENTE'}
-                            </button>
-                        </td>
+                        <td><button class="status-badge ${pagado ? 'pagado' : 'no-pagado'}" onclick="togglePago(${i}, '${mesActual}')">${pagado ? 'PAGADO' : 'PENDIENTE'}</button></td>
                         <td>${c.plan || '-'}</td>
                         <td>
-                            <button class="btn-accion" title="Recibo" onclick="generarRecibo(${i})">📄</button>
-                            <button class="btn-accion" title="Editar" onclick="editar(${i})">✏️</button>
-                            <button class="btn-accion" title="WhatsApp" onclick="enviarWA(${i})">📲</button>
-                            <button class="btn-accion" style="color:red" title="Eliminar" onclick="eliminarUsuario(${i})">🗑️</button>
+                            <button onclick="generarRecibo(${i})">📄</button>
+                            <button onclick="editar(${i})">✏️</button>
                         </td>
                     </tr>`;
             }
@@ -188,66 +145,49 @@
         document.getElementById('montoPendiente').innerText = `$${pen}`;
     }
 
-    async function togglePago(i, mes) {
-        let lista = (clientes[i].ultimoMesPago || "").split(",").filter(m => m !== "");
-        lista.includes(mes) ? lista = lista.filter(m => m !== mes) : lista.push(mes);
-        clientes[i].ultimoMesPago = lista.join(",");
-        actualizarVista();
-        await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "upsert", ...clientes[i] }) });
-    }
-
-    // FUNCIÓN PARA GENERAR EL RECIBO EN PDF
     function generarRecibo(i) {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         const c = clientes[i];
         const mes = document.getElementById('mesSeleccionado').value;
-        const fecha = new Date().toLocaleDateString();
 
-        // Diseño del PDF
-        doc.setFillColor(26, 115, 232);
-        doc.rect(0, 0, 210, 40, 'F'); // Encabezado azul
+        // Estilo de NewLink Wireless
+        doc.setFontSize(20);
+        doc.setTextColor(40, 40, 40);
+        doc.text("NEWLINK WIRELESS", 20, 20);
+        doc.setFontSize(10);
+        doc.text("Comprobante oficial de pago", 20, 28);
         
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(22);
-        doc.setFont("helvetica", "bold");
-        doc.text("INTERNET CLOUD PRO", 20, 25);
-        
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(16);
-        doc.text("COMPROBANTE DE PAGO", 20, 60);
-        
-        doc.setFontSize(12);
-        doc.setFont("helvetica", "normal");
-        doc.text(`Fecha de emisión: ${fecha}`, 140, 60);
-        
-        doc.line(20, 65, 190, 65); // Línea divisoria
-
-        doc.setFont("helvetica", "bold");
-        doc.text("DATOS DEL CLIENTE:", 20, 80);
-        doc.setFont("helvetica", "normal");
-        doc.text(`Nombre: ${c.nombre}`, 20, 90);
-        doc.text(`Teléfono: ${c.telefono}`, 20, 100);
-        doc.text(`Dirección: ${c.direccion || 'N/A'}`, 20, 110);
-
-        doc.setFont("helvetica", "bold");
-        doc.text("DETALLES DEL SERVICIO:", 20, 130);
-        doc.setFont("helvetica", "normal");
-        doc.text(`Plan contratado: ${c.plan || 'Plan Estándar'}`, 20, 140);
-        doc.text(`Mes cancelado: ${mes}`, 20, 150);
-        
-        doc.setFillColor(245, 245, 245);
-        doc.rect(20, 165, 170, 20, 'F');
         doc.setFontSize(14);
+        doc.text(`RECIBO# ${mes.toUpperCase()}-${c.nombre.substring(0,3).toUpperCase()}`, 140, 20);
+
+        doc.line(20, 35, 190, 35);
+
         doc.setFont("helvetica", "bold");
-        doc.text(`TOTAL PAGADO: $${c.precio}`, 30, 178);
+        doc.text("DATOS DEL CLIENTE:", 20, 50);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Nombre: ${c.nombre}`, 20, 60);
+        doc.text(`Dirección: ${c.direccion || 'N/A'}`, 20, 70);
+        doc.text(`Plan: ${c.plan}`, 20, 80);
+
+        doc.setFillColor(240, 240, 240);
+        doc.rect(20, 95, 170, 20, 'F');
+        doc.setFontSize(16);
+        doc.text(`TOTAL PAGADO: $ ${c.precio}`, 30, 108);
 
         doc.setFontSize(10);
-        doc.setFont("helvetica", "italic");
-        doc.text("Gracias por preferir Internet Cloud Pro. Este recibo es un comprobante digital de su pago.", 20, 210);
+        doc.text(`Emitido el: ${new Date().toLocaleDateString()}`, 20, 130);
+        doc.text("Gracias por su pago.", 105, 150, { align: "center" });
 
-        // Guardar PDF
-        doc.save(`Recibo_${c.nombre}_${mes}.pdf`);
+        doc.save(`Recibo_${c.nombre}.pdf`);
+    }
+
+    async function togglePago(i, mes) {
+        let lista = (clientes[i].ultimoMesPago || "").split(",").filter(x => x);
+        lista.includes(mes) ? lista = lista.filter(x => x !== mes) : lista.push(mes);
+        clientes[i].ultimoMesPago = lista.join(",");
+        actualizarVista();
+        await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "upsert", ...clientes[i] }) });
     }
 
     async function procesarCliente() {
@@ -263,14 +203,10 @@
             fechaPago: document.getElementById('fechaPago').value,
             ultimoMesPago: idx === "-1" ? "" : clientes[idx].ultimoMesPago
         };
-
-        if(!c.nombre) return alert("Nombre obligatorio");
         document.getElementById('statusCarga').style.display = 'block';
-        try {
-            await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(c) });
-            if(idx === "-1") clientes.push(c); else clientes[idx] = c;
-            limpiar(); actualizarVista();
-        } catch (e) { alert("Error de conexión"); }
+        await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(c) });
+        if(idx === "-1") clientes.push(c); else clientes[idx] = c;
+        actualizarVista();
         document.getElementById('statusCarga').style.display = 'none';
     }
 
@@ -279,34 +215,10 @@
         document.getElementById('editIndex').value = i;
         document.getElementById('nombre').value = c.nombre;
         document.getElementById('telefono').value = c.telefono;
-        document.getElementById('direccion').value = c.direccion;
         document.getElementById('precio').value = c.precio;
         document.getElementById('plan').value = c.plan;
         document.getElementById('fechaPago').value = c.fechaPago;
         document.getElementById('btnPrincipal').innerText = "🔄 ACTUALIZAR DATOS";
-        window.scrollTo(0,0);
-    }
-
-    async function eliminarUsuario(i) {
-        if(!confirm("¿Eliminar permanentemente?")) return;
-        const id = clientes[i].id;
-        document.getElementById('statusCarga').style.display = 'block';
-        await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "delete", id: id }) });
-        clientes.splice(i, 1);
-        actualizarVista();
-        document.getElementById('statusCarga').style.display = 'none';
-    }
-
-    function enviarWA(i) {
-        const c = clientes[i];
-        const msg = encodeURIComponent(`Hola ${c.nombre}, te saludamos de Internet Cloud. Confirmamos la recepción de tu pago. ¡Gracias por tu preferencia!`);
-        window.open(`https://wa.me/${c.telefono}?text=${msg}`, '_blank');
-    }
-
-    function limpiar() {
-        document.querySelectorAll('input').forEach(i => i.value = '');
-        document.getElementById('editIndex').value = "-1";
-        document.getElementById('btnPrincipal').innerText = "💾 GUARDAR / ACTUALIZAR";
     }
 
     window.onload = cargarDatos;
