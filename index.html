@@ -18,8 +18,10 @@
         .card span { display: block; font-size: 0.8em; opacity: 0.9; }
         .card div { font-size: 1.5em; margin-top: 5px; }
 
-        /* Filtros */
-        .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
+        /* Buscador y Filtros */
+        .search-filter-container { display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; }
+        #buscadorNombre { padding: 12px; border-radius: 8px; border: 2px solid #1a73e8; width: 100%; box-sizing: border-box; font-size: 16px; }
+        .filter-bar { display: flex; gap: 10px; justify-content: center; }
         .btn-filter { padding: 10px 20px; border: none; border-radius: 20px; cursor: pointer; background: #e8f0fe; color: #1a73e8; font-weight: bold; transition: 0.3s; }
         .btn-filter.active { background: #1a73e8; color: white; }
 
@@ -46,7 +48,7 @@
 <body>
 
 <div class="container">
-    <h2>Panel de Control</h2>
+    <h2>Panel de Control Cloud</h2>
 
     <div class="dashboard">
         <div class="card total"><span>TOTAL ESPERADO</span><div id="montoTotal">$0</div></div>
@@ -70,10 +72,13 @@
         <button id="btnPrincipal" class="btn-principal" onclick="procesarCliente()">💾 GUARDAR Y SINCRONIZAR</button>
     </div>
 
-    <div class="filter-bar">
-        <button class="btn-filter active" onclick="filtrar('todos', this)">Todos</button>
-        <button class="btn-filter" onclick="filtrar('1', this)">Día 1</button>
-        <button class="btn-filter" onclick="filtrar('15', this)">Día 15</button>
+    <div class="search-filter-container">
+        <input type="text" id="buscadorNombre" placeholder="🔍 Buscar cliente por nombre..." onkeyup="actualizarVista()">
+        <div class="filter-bar">
+            <button class="btn-filter active" onclick="filtrar('todos', this)">Todos</button>
+            <button class="btn-filter" onclick="filtrar('1', this)">Día 1</button>
+            <button class="btn-filter" onclick="filtrar('15', this)">Día 15</button>
+        </div>
     </div>
 
     <div class="table-container">
@@ -123,20 +128,23 @@
     function actualizarVista() {
         localStorage.setItem('backup_clientes', JSON.stringify(clientes));
         const cuerpo = document.getElementById('cuerpoTabla');
+        const busqueda = document.getElementById('buscadorNombre').value.toLowerCase();
         cuerpo.innerHTML = "";
         
         let sumaTotal = 0, sumaPagado = 0, sumaPendiente = 0;
 
         clientes.forEach((c, i) => {
-            const cumpleFiltro = filtroActual === 'todos' || c.fechaPago == filtroActual;
-            
-            // Cálculos financieros (siempre sobre todos los datos o según filtro, tú eliges. Aquí sobre TODOS para control general)
             const precio = parseFloat(c.precio) || 0;
+            const cumpleFiltroFecha = filtroActual === 'todos' || c.fechaPago == filtroActual;
+            const cumpleBusqueda = c.nombre.toLowerCase().includes(busqueda);
+
+            // Totales financieros (sobre la base completa)
             sumaTotal += precio;
             if(c.estadoPago === "Pagado") sumaPagado += precio;
             else sumaPendiente += precio;
 
-            if(cumpleFiltro) {
+            // Mostrar solo si cumple ambos filtros
+            if(cumpleFiltroFecha && cumpleBusqueda) {
                 cuerpo.innerHTML += `
                     <tr>
                         <td><b>${c.nombre}</b></td>
@@ -174,7 +182,7 @@
             estadoPago: index === "-1" ? "Pendiente" : clientes[index].estadoPago
         };
 
-        if(!c.nombre || !c.telefono) return alert("Faltan datos");
+        if(!c.nombre || !c.telefono) return alert("Nombre y Teléfono requeridos");
 
         document.getElementById('statusCarga').style.display = 'block';
         try {
@@ -182,12 +190,12 @@
             if(index === "-1") clientes.push(c); else clientes[index] = c;
             limpiar();
             actualizarVista();
-        } catch (e) { alert("Error de red"); }
+        } catch (e) { alert("Error al guardar"); }
         document.getElementById('statusCarga').style.display = 'none';
     }
 
     async function eliminarUsuario(i) {
-        if(!confirm("¿Eliminar cliente?")) return;
+        if(!confirm(`¿Eliminar a ${clientes[i].nombre}?`)) return;
         const id = clientes[i].id;
         document.getElementById('statusCarga').style.display = 'block';
         try {
@@ -212,7 +220,7 @@
         document.getElementById('precio').value = c.precio;
         document.getElementById('plan').value = c.plan;
         document.getElementById('fechaPago').value = c.fechaPago;
-        document.getElementById('btnPrincipal').innerText = "🔄 ACTUALIZAR";
+        document.getElementById('btnPrincipal').innerText = "🔄 ACTUALIZAR USUARIO";
         document.getElementById('btnPrincipal').classList.add("modo-edicion");
         window.scrollTo(0,0);
     }
