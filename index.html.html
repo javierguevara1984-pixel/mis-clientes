@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión Internet Cloud</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 20px; background-color: #f0f2f5; }
+        .container { max-width: 1050px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { color: #1a73e8; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        input, select, button { padding: 12px; border-radius: 6px; border: 1px solid #ddd; font-size: 14px; }
+        button { cursor: pointer; font-weight: bold; transition: 0.3s; border: none; }
+        .btn-guardar { background-color: #1a73e8; color: white; grid-column: span 3; margin-top: 10px; }
+        .filtros { display: flex; gap: 10px; margin: 20px 0; }
+        .btn-filtro { background-color: #34a853; color: white; flex: 1; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #eee; padding: 12px; text-align: left; font-size: 13px; }
+        th { background-color: #f8f9fa; }
+        .status-badge { padding: 5px 10px; border-radius: 20px; font-size: 10px; cursor: pointer; font-weight: bold; }
+        .pagado { background-color: #e6f4ea; color: #1e7e34; }
+        .pendiente { background-color: #fce8e6; color: #d93025; }
+        .resumen-financiero { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 25px; padding: 20px; background: #f8f9fa; border-radius: 10px; }
+        .loading { color: orange; font-weight: bold; text-align: center; margin: 10px 0; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Panel de Control</h2>
+    <div id="statusCarga" class="loading">⏳ Conectando con Google Sheets...</div>
+    
+    <div class="form-grid">
+        <input type="hidden" id="editIndex" value="-1">
+        <input type="text" id="nombre" placeholder="Nombre">
+        <input type="tel" id="telefono" placeholder="WhatsApp">
+        <input type="text" id="direccion" placeholder="Dirección">
+        <input type="text" id="plan" placeholder="Plan">
+        <input type="number" id="precio" placeholder="Precio ($)">
+        <select id="fechaPago">
+            <option value="1">Día 1</option>
+            <option value="15">Día 15</option>
+        </select>
+        <button id="btnPrincipal" class="btn-guardar" onclick="procesarCliente()">💾 Guardar y Sincronizar</button>
+    </div>
+
+    <div class="filtros">
+        <button class="btn-filtro" onclick="filtrar('todos')">Todos</button>
+        <button class="btn-filtro" onclick="filtrar('1')">Día 1</button>
+        <button class="btn-filtro" onclick="filtrar('15')">Día 15</button>
+    </div>
+
+    <table id="tablaClientes">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Plan</th>
+                <th>Corte</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="cuerpoTabla"></tbody>
+    </table>
+
+    <div class="resumen-financiero">
+        <div style="text-align:center"><span>TOTAL</span><br><b id="sumaTotal">$0</b></div>
+        <div style="text-align:center"><span>PAGADO</span><br><b id="sumaPagados" style="color:green">$0</b></div>
+        <div style="text-align:center"><span>PENDIENTE</span><br><b id="sumaPendientes" style="color:red">$0</b></div>
+    </div>
+</div>
+
+<script>
+    // URL Actualizada según tu última implementación
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwhtE3Fqiqrv29SzUWGC3yZrvxe3rc4W2PaO710NLu4E8ZnWn1bjtVHz9Q19ovudbLx/exec";
+    
+    let clientes = [];
+    let filtroActual = 'todos';
+
+    async function cargarDatos() {
+        const status = document.getElementById('statusCarga');
+        status.innerText = "⏳ Conectando con Google Sheets...";
+        status.style.display = 'block';
+
+        try {
+            // Se usa mode: 'cors' y redirect: 'follow' para máxima compatibilidad
+            const response = await fetch(WEB_APP_URL, {
+                method: 'GET',
+                mode: 'cors',
+                redirect: 'follow'
+            });
+
+            if (!response.ok) throw new Error("Error en la respuesta del servidor");
+
+            clientes = await response.json();
+            console.log("Datos recibidos:", clientes);
+            actualizarVista();
+            status.style.display = 'none';
+        } catch (error) {
+            console.error("Fallo de conexión:", error);
+            status.innerText = "❌ Error de conexión. Usando datos locales.";
+            clientes = JSON.parse(localStorage.getItem('backup_clientes')) || [];
+            actualizarVista();
+            // El mensaje desaparece tras 3 segundos si falló la nube
+            setTimeout(() => { status.style.display = 'none'; }, 3000);
+        }
+    }
+
+    async function procesarCliente() {
+        const nombre = document.getElementById('nombre').value;
+        const precio = parseFloat(document.getElementById('precio').value);
+        const telefono = document.getElementById('telefono').value;
+
+        if(!nombre || isNaN(precio)) return alert("Por favor completa los campos.");
+
+        const nuevoCliente = {
+            id: Date.now(),
+            nombre: nombre,
+            telefono: telefono,
+            direccion: document.getElementById('direccion').value,
+            plan: document.getElementById('plan').value,
+            precio: precio,
+            fechaPago: document.getElementById('fechaPago').value,
+            estadoPago: "Pendiente",
+            servicio: "Activo"
+        };
+
+        document.getElementById('statusCarga').style.display = 'block';
+        document.getElementById('statusCarga').innerText = "📤 Guardando en la nube...";
+
+        try {
+            // Guardar en Sheets sin bloquear la interfaz
+            await fetch(WEB_APP_URL, {
+                method: "POST",
+                mode: "no-cors", 
+                body: JSON.stringify(nuevoCliente)
+            });
+            
+            clientes.push(nuevoCliente);
+            actualizarVista();
+            limpiarFormulario();
+        } catch (e) {
+            alert("Error al guardar. Se guardará solo localmente.");
+            clientes.push(nuevoCliente);
+            actualizarVista();
+        }
+        document.getElementById('statusCarga').style.display = 'none';
+    }
+
+    function actualizarVista() {
+        localStorage.setItem('backup_clientes', JSON.stringify(clientes));
+        const cuerpo = document.getElementById('cuerpoTabla');
+        cuerpo.innerHTML = "";
+        let total = 0, pagado = 0, pendiente = 0;
+
+        const filtrados = filtroActual === 'todos' ? clientes : clientes.filter(c => String(c.fechaPago) === filtroActual);
+
+        filtrados.forEach((c, i) => {
+            total += c.precio;
+            if(c.estadoPago === "Pagado") pagado += c.precio; else pendiente += c.precio;
+            
+            cuerpo.innerHTML += `
+                <tr>
+                    <td>${c.nombre}</td>
+                    <td>${c.plan} ($${c.precio})</td>
+                    <td>Día ${c.fechaPago}</td>
+                    <td><button class="status-badge ${c.estadoPago.toLowerCase()}" onclick="cambiarEstado(${i})">${c.estadoPago}</button></td>
+                    <td>
+                        <button onclick="enviarAviso('${c.nombre}','${c.telefono}')">📲 WA</button>
+                    </td>
+                </tr>`;
+        });
+        document.getElementById('sumaTotal').innerText = `$${total}`;
+        document.getElementById('sumaPagados').innerText = `$${pagado}`;
+        document.getElementById('sumaPendientes').innerText = `$${pendiente}`;
+    }
+
+    function cambiarEstado(i) {
+        clientes[i].estadoPago = clientes[i].estadoPago === "Pendiente" ? "Pagado" : "Pendiente";
+        actualizarVista();
+    }
+
+    function enviarAviso(nombre, tel) {
+        const msg = encodeURIComponent(`Hola ${nombre}, te recordamos tu pago de internet.`);
+        window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
+    }
+
+    function limpiarFormulario() {
+        document.getElementById('nombre').value = '';
+        document.getElementById('precio').value = '';
+        document.getElementById('telefono').value = '';
+    }
+
+    function filtrar(dia) { filtroActual = dia; actualizarVista(); }
+
+    // Ejecutar carga al abrir
+    window.onload = cargarDatos;
+</script>
+</body>
+</html>
