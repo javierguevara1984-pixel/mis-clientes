@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión Cloud - Control Mensual</title>
+    <title>Gestión Cloud - Historial Mensual</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; margin: 10px; background-color: #f0f2f5; color: #333; }
         .container { max-width: 1200px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+        .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
         h2 { color: #1a73e8; margin: 0; }
-        .mes-actual { background: #1a73e8; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; text-transform: uppercase; }
+        
+        /* Selector de Mes */
+        .selector-mes { background: #1a73e8; color: white; padding: 8px 15px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; font-size: 14px; }
         
         /* Dashboard */
         .dashboard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
@@ -19,9 +21,10 @@
         .pendiente { background: #d93025; }
         .card div { font-size: 1.4em; font-weight: bold; }
 
-        /* Buscador y Filtros */
-        .search-bar { width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #1a73e8; margin-bottom: 15px; box-sizing: border-box; }
-        .filter-bar { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
+        /* Filtros y Buscador */
+        .controls { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        .search-bar { padding: 12px; border-radius: 8px; border: 2px solid #1a73e8; box-sizing: border-box; width: 100%; }
+        .filter-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; }
         .btn-filter { padding: 8px 16px; border: none; border-radius: 15px; background: #e8f0fe; color: #1a73e8; cursor: pointer; white-space: nowrap; font-weight: bold; }
         .btn-filter.active { background: #1a73e8; color: white; }
 
@@ -35,7 +38,7 @@
         .table-container { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; min-width: 1000px; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
-        .status-badge { padding: 5px 10px; border-radius: 15px; font-size: 11px; font-weight: bold; border: none; cursor: pointer; min-width: 80px; }
+        .status-badge { padding: 5px 10px; border-radius: 15px; font-size: 11px; font-weight: bold; border: none; cursor: pointer; min-width: 90px; }
         .pagado { background: #e6f4ea; color: #1e7e34; }
         .no-pagado { background: #fce8e6; color: #d93025; }
         .btn-accion { padding: 6px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer; }
@@ -46,17 +49,33 @@
 
 <div class="container">
     <div class="header-flex">
-        <h2>Control Internet Cloud</h2>
-        <div class="mes-actual" id="labelMes">---</div>
+        <h2>Internet Cloud</h2>
+        <div>
+            <span style="font-size: 12px; font-weight: bold; color: #666;">MES CONSULTADO:</span>
+            <select id="mesSeleccionado" class="selector-mes" onchange="actualizarVista()">
+                <option value="Enero">Enero</option>
+                <option value="Febrero">Febrero</option>
+                <option value="Marzo">Marzo</option>
+                <option value="Abril">Abril</option>
+                <option value="Mayo">Mayo</option>
+                <option value="Junio">Junio</option>
+                <option value="Julio">Julio</option>
+                <option value="Agosto">Agosto</option>
+                <option value="Septiembre">Septiembre</option>
+                <option value="Octubre">Octubre</option>
+                <option value="Noviembre">Noviembre</option>
+                <option value="Diciembre">Diciembre</option>
+            </select>
+        </div>
     </div>
 
     <div class="dashboard">
-        <div class="card total"><span>TOTAL</span><div id="montoTotal">$0</div></div>
+        <div class="card total"><span>MENSUALIDAD</span><div id="montoTotal">$0</div></div>
         <div class="card recaudado"><span>COBRADO</span><div id="montoPagado">$0</div></div>
-        <div class="card pendiente"><span>FALTA</span><div id="montoPendiente">$0</div></div>
+        <div class="card pendiente"><span>PENDIENTE</span><div id="montoPendiente">$0</div></div>
     </div>
 
-    <div id="statusCarga" class="loading">⏳ Sincronizando datos...</div>
+    <div id="statusCarga" class="loading">⏳ Cargando historial...</div>
 
     <div class="form-grid">
         <input type="hidden" id="editIndex" value="-1">
@@ -66,19 +85,20 @@
         <input type="number" id="precio" placeholder="Precio $">
         <input type="text" id="plan" placeholder="Plan">
         <select id="fechaPago">
-            <option value="1">Día 1</option>
-            <option value="15">Día 15</option>
+            <option value="1">Corte: Día 1</option>
+            <option value="15">Corte: Día 15</option>
         </select>
-        <button id="btnPrincipal" class="btn-principal" onclick="procesarCliente()">💾 GUARDAR CLIENTE</button>
+        <button id="btnPrincipal" class="btn-principal" onclick="procesarCliente()">💾 GUARDAR CAMBIOS</button>
     </div>
 
-    <input type="text" id="buscador" class="search-bar" placeholder="🔍 Buscar cliente por nombre..." onkeyup="actualizarVista()">
-
-    <div class="filter-bar">
-        <button class="btn-filter active" onclick="filtrar('todos', this)">Todos</button>
-        <button class="btn-filter" onclick="filtrar('1', this)">Día 1</button>
-        <button class="btn-filter" onclick="filtrar('15', this)">Día 15</button>
-        <button class="btn-filter" onclick="filtrar('Pendiente', this)" style="color:red">Solo Pendientes</button>
+    <div class="controls">
+        <input type="text" id="buscador" class="search-bar" placeholder="🔍 Buscar cliente..." onkeyup="actualizarVista()">
+        <div class="filter-bar">
+            <button class="btn-filter active" onclick="filtrar('todos', this)">Todos</button>
+            <button class="btn-filter" onclick="filtrar('1', this)">Día 1</button>
+            <button class="btn-filter" onclick="filtrar('15', this)">Día 15</button>
+            <button class="btn-filter" onclick="filtrar('Pendiente', this)" style="color:red">No Pagados</button>
+        </div>
     </div>
 
     <div class="table-container">
@@ -89,7 +109,7 @@
                     <th>WhatsApp</th>
                     <th>Precio</th>
                     <th>Corte</th>
-                    <th>Estado Pago</th>
+                    <th>Estado de Pago</th>
                     <th>Plan</th>
                     <th>Acciones</th>
                 </tr>
@@ -102,12 +122,12 @@
 <script>
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzha-FI4ghQY-O8WkRvNN1jIhWjmNLCGxuMx9lvFvmTYtkkPFQrnoyfijX7dOqD0qhw/exec";
     let clientes = [];
-    let filtroActual = 'todos';
+    let filtroDia = 'todos';
     
-    // Obtener Mes Actual
+    // Configurar mes actual por defecto al cargar
     const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-    const mesHoy = meses[new Date().getMonth()];
-    document.getElementById('labelMes').innerText = mesHoy;
+    const mesActualIdx = new Date().getMonth();
+    document.getElementById('mesSeleccionado').value = meses[mesActualIdx];
 
     async function cargarDatos() {
         document.getElementById('statusCarga').style.display = 'block';
@@ -123,7 +143,7 @@
     }
 
     function filtrar(val, btn) {
-        filtroActual = val;
+        filtroDia = val;
         document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         actualizarVista();
@@ -133,34 +153,34 @@
         localStorage.setItem('backup_clientes', JSON.stringify(clientes));
         const cuerpo = document.getElementById('cuerpoTabla');
         const busqueda = document.getElementById('buscador').value.toLowerCase();
-        cuerpo.innerHTML = "";
+        const mesFiltro = document.getElementById('mesSeleccionado').value;
         
+        cuerpo.innerHTML = "";
         let t = 0, p = 0, pen = 0;
 
         clientes.forEach((c, i) => {
-            // Lógica de estado mensual: Si el campo ultimoMesPago no es el mes actual, poner Pendiente
-            const estadoReal = c.ultimoMesPago === mesHoy ? "Pagado" : "Pendiente";
+            // Un cliente está pagado si su registro 'ultimoMesPago' incluye el mes seleccionado
+            const listaMesesPagados = (c.ultimoMesPago || "").split(",");
+            const estaPagado = listaMesesPagados.includes(mesFiltro);
             const precio = parseFloat(c.precio) || 0;
 
-            // Filtros
-            const cumpleFecha = (filtroActual === 'todos' || filtroActual === 'Pendiente' || c.fechaPago == filtroActual);
-            const cumpleEstado = (filtroActual !== 'Pendiente' || estadoReal === 'Pendiente');
+            const cumpleDia = (filtroDia === 'todos' || filtroDia === 'Pendiente' || c.fechaPago == filtroDia);
+            const cumpleEstado = (filtroDia !== 'Pendiente' || !estaPagado);
             const cumpleBusqueda = c.nombre.toLowerCase().includes(busqueda);
 
-            // Totales
             t += precio;
-            if(estadoReal === "Pagado") p += precio; else pen += precio;
+            if(estaPagado) p += precio; else pen += precio;
 
-            if(cumpleFecha && cumpleEstado && cumpleBusqueda) {
+            if(cumpleDia && cumpleEstado && cumpleBusqueda) {
                 cuerpo.innerHTML += `
                     <tr>
-                        <td><b>${c.nombre}</b><br><small style="color:#666">${c.direccion || ''}</small></td>
+                        <td><b>${c.nombre}</b><br><small>${c.direccion || ''}</small></td>
                         <td>${c.telefono}</td>
                         <td>$${precio}</td>
                         <td>Día ${c.fechaPago}</td>
                         <td>
-                            <button class="status-badge ${estadoReal === 'Pagado' ? 'pagado' : 'no-pagado'}" 
-                                onclick="togglePago(${i})">${estadoReal}
+                            <button class="status-badge ${estaPagado ? 'pagado' : 'no-pagado'}" 
+                                onclick="togglePago(${i}, '${mesFiltro}')">${estaPagado ? 'PAGADO' : 'PENDIENTE'}
                             </button>
                         </td>
                         <td>${c.plan || '-'}</td>
@@ -178,12 +198,19 @@
         document.getElementById('montoPendiente').innerText = `$${pen}`;
     }
 
-    async function togglePago(i) {
-        const nuevoEstado = clientes[i].ultimoMesPago === mesHoy ? "" : mesHoy;
-        clientes[i].ultimoMesPago = nuevoEstado;
+    async function togglePago(i, mes) {
+        let lista = (clientes[i].ultimoMesPago || "").split(",").filter(m => m !== "");
+        
+        if (lista.includes(mes)) {
+            lista = lista.filter(m => m !== mes); // Quitar si ya estaba
+        } else {
+            lista.push(mes); // Agregar si no estaba
+        }
+        
+        clientes[i].ultimoMesPago = lista.join(",");
         actualizarVista();
         
-        // Sincronizar con la nube
+        // Guardar en la nube
         await fetch(WEB_APP_URL, { 
             method: "POST", 
             mode: "no-cors", 
@@ -191,6 +218,7 @@
         });
     }
 
+    // Funciones de gestión (procesar, editar, eliminar, limpiar)
     async function procesarCliente() {
         const idx = document.getElementById('editIndex').value;
         const c = {
@@ -204,16 +232,13 @@
             fechaPago: document.getElementById('fechaPago').value,
             ultimoMesPago: idx === "-1" ? "" : clientes[idx].ultimoMesPago
         };
-
         if(!c.nombre) return alert("Nombre obligatorio");
-
         document.getElementById('statusCarga').style.display = 'block';
         try {
             await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(c) });
             if(idx === "-1") clientes.push(c); else clientes[idx] = c;
-            limpiar();
-            actualizarVista();
-        } catch (e) { alert("Error"); }
+            limpiar(); actualizarVista();
+        } catch (e) { alert("Error de red"); }
         document.getElementById('statusCarga').style.display = 'none';
     }
 
@@ -226,12 +251,12 @@
         document.getElementById('precio').value = c.precio;
         document.getElementById('plan').value = c.plan;
         document.getElementById('fechaPago').value = c.fechaPago;
-        document.getElementById('btnPrincipal').innerText = "🔄 ACTUALIZAR";
+        document.getElementById('btnPrincipal').innerText = "🔄 ACTUALIZAR CLIENTE";
         window.scrollTo(0,0);
     }
 
     async function eliminarUsuario(i) {
-        if(!confirm("¿Eliminar?")) return;
+        if(!confirm("¿Eliminar permanentemente?")) return;
         const id = clientes[i].id;
         await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "delete", id: id }) });
         clientes.splice(i, 1);
@@ -245,7 +270,7 @@
     function limpiar() {
         document.querySelectorAll('input').forEach(i => i.value = '');
         document.getElementById('editIndex').value = "-1";
-        document.getElementById('btnPrincipal').innerText = "💾 GUARDAR CLIENTE";
+        document.getElementById('btnPrincipal').innerText = "💾 GUARDAR CAMBIOS";
     }
 
     window.onload = cargarDatos;
