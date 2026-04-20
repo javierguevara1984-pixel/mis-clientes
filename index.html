@@ -77,17 +77,31 @@
     let clientes = [];
     let filtroActual = 'todos';
 
-    async function cargarDatos() {
-        const status = document.getElementById('statusCarga');
-        status.style.display = 'block';
+    // Esta es la URL que me indicaste
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwhtE3Fqiqrv29SzUWGC3yZrvxe3rc4W2PaO710NLu4E8ZnWn1bjtVHz9Q19ovudbLx/exec";
 
-        try {
-            // El parámetro redirect: 'follow' es obligatorio para Google Apps Script
-            const response = await fetch(WEB_APP_URL, { 
-                method: 'GET',
-                redirect: 'follow' 
-            });
-
+async function cargarDatos() {
+    const loader = document.getElementById('statusCarga');
+    if (loader) loader.style.display = 'block';
+    try {
+        // El parámetro redirect: "follow" es vital para que Google responda
+        const res = await fetch(WEB_APP_URL, { 
+            method: "GET",
+            redirect: "follow" 
+        });
+        const data = await res.json();
+        if(data) {
+            clientes = data;
+            actualizarVista();
+        }
+    } catch (e) {
+        console.error("Error:", e);
+        // Usa los datos guardados en el celular si la red falla
+        clientes = JSON.parse(localStorage.getItem('backup_clientes')) || [];
+        actualizarVista();
+    }
+    if (loader) loader.style.display = 'none';
+}
             if (!response.ok) throw new Error("Error en servidor");
 
             const data = await response.json();
