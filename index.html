@@ -9,35 +9,29 @@
         .container { max-width: 1250px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
         h2 { color: #1a73e8; margin: 0; }
-        
         .selector-mes { background: #1a73e8; color: white; padding: 8px 15px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; }
         
-        /* Dashboard con 4 Columnas */
         .dashboard { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
         @media (min-width: 768px) { .dashboard { grid-template-columns: repeat(4, 1fr); } }
-        
         .card { padding: 12px; border-radius: 10px; text-align: center; color: white; }
-        .total-clientes { background: #1a73e8; } /* Azul */
-        .monto-total { background: #5f6368; }   /* Gris */
-        .recaudado { background: #1e7e34; }     /* Verde */
-        .pendiente { background: #d93025; }     /* Rojo */
+        .total-clientes { background: #1a73e8; }
+        .monto-total { background: #5f6368; }
+        .recaudado { background: #1e7e34; }
+        .pendiente { background: #d93025; }
         .card span { font-size: 0.75em; font-weight: bold; text-transform: uppercase; }
         .card div { font-size: 1.4em; font-weight: bold; }
 
-        /* Formulario */
         .form-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 25px; background: #f8f9fa; padding: 15px; border-radius: 10px; }
         @media (min-width: 768px) { .form-grid { grid-template-columns: repeat(4, 1fr); } }
         input, select, button { padding: 10px; border-radius: 6px; border: 1px solid #ddd; width: 100%; box-sizing: border-box; }
         .btn-principal { background: #1a73e8; color: white; font-weight: bold; grid-column: 1 / -1; height: 45px; border: none; cursor: pointer; }
 
-        /* Controles */
         .controls { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
         .search-bar { padding: 12px; border-radius: 8px; border: 2px solid #1a73e8; width: 100%; box-sizing: border-box; }
         .filter-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; }
         .btn-filter { padding: 8px 16px; border: none; border-radius: 15px; background: #e8f0fe; color: #1a73e8; cursor: pointer; white-space: nowrap; font-weight: bold; }
         .btn-filter.active { background: #1a73e8; color: white; }
 
-        /* Tabla */
         .table-container { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; min-width: 1100px; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
@@ -76,17 +70,17 @@
 
     <div class="form-grid">
         <input type="hidden" id="editIndex" value="-1">
-        <input type="hidden" id="fechaIngreso" value="">
+        <input type="hidden" id="fechaIngresoOriginal" value="">
         <input type="text" id="nombre" placeholder="Nombre completo">
         <input type="tel" id="telefono" placeholder="WhatsApp">
         <input type="text" id="direccion" placeholder="Dirección">
         <input type="number" id="precio" placeholder="Precio $">
         <input type="text" id="plan" placeholder="Plan">
         <select id="fechaPago">
-            <option value="1">Día 1</option>
-            <option value="15">Día 15</option>
+            <option value="1">Corte: Día 1</option>
+            <option value="15">Corte: Día 15</option>
         </select>
-        <button id="btnPrincipal" class="btn-principal" onclick="procesarCliente()">💾 GUARDAR / ACTUALIZAR CLIENTE</button>
+        <button id="btnPrincipal" class="btn-principal" onclick="procesarCliente()">💾 GUARDAR / ACTUALIZAR</button>
     </div>
 
     <div class="controls">
@@ -162,7 +156,7 @@
             const cumpleEstado = (filtroDia !== 'Pendiente' || !estaPagado);
             const cumpleBusqueda = c.nombre.toLowerCase().includes(busqueda);
 
-            cant++; // Contador de clientes totales
+            cant++;
             t += precio;
             if(estaPagado) p += precio; else pen += precio;
 
@@ -205,8 +199,11 @@
 
     async function procesarCliente() {
         const idx = document.getElementById('editIndex').value;
-        const fechaHoy = new Date().toLocaleDateString();
+        const fechaOriginal = document.getElementById('fechaIngresoOriginal').value;
         
+        // Si es nuevo, genera fecha hoy. Si es edición, usa la que ya tenía.
+        const fechaFinal = (idx === "-1") ? new Date().toLocaleDateString() : (fechaOriginal || "-");
+
         const c = {
             action: "upsert",
             id: idx === "-1" ? Date.now() : clientes[idx].id,
@@ -217,35 +214,36 @@
             plan: document.getElementById('plan').value,
             fechaPago: document.getElementById('fechaPago').value,
             ultimoMesPago: idx === "-1" ? "" : clientes[idx].ultimoMesPago,
-            fechaIngreso: idx === "-1" ? fechaHoy : document.getElementById('fechaIngreso').value
+            fechaIngreso: fechaFinal
         };
 
-        if(!c.nombre) return alert("Nombre obligatorio");
+        if(!c.nombre) return alert("El nombre es necesario");
         document.getElementById('statusCarga').style.display = 'block';
         try {
             await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(c) });
             if(idx === "-1") clientes.push(c); else clientes[idx] = c;
-            limpiar(); actualizarVista();
-        } catch (e) { alert("Error"); }
+            limpiar(); 
+            actualizarVista();
+        } catch (e) { alert("Error al guardar"); }
         document.getElementById('statusCarga').style.display = 'none';
     }
 
     function editar(i) {
         const c = clientes[i];
         document.getElementById('editIndex').value = i;
-        document.getElementById('fechaIngreso').value = c.fechaIngreso || "";
+        document.getElementById('fechaIngresoOriginal').value = c.fechaIngreso || "";
         document.getElementById('nombre').value = c.nombre;
         document.getElementById('telefono').value = c.telefono;
         document.getElementById('direccion').value = c.direccion;
         document.getElementById('precio').value = c.precio;
         document.getElementById('plan').value = c.plan;
         document.getElementById('fechaPago').value = c.fechaPago;
-        document.getElementById('btnPrincipal').innerText = "🔄 ACTUALIZAR DATOS";
+        document.getElementById('btnPrincipal').innerText = "🔄 ACTUALIZAR CLIENTE";
         window.scrollTo(0,0);
     }
 
     async function eliminarUsuario(i) {
-        if(!confirm("¿Eliminar?")) return;
+        if(!confirm("¿Borrar definitivamente?")) return;
         const id = clientes[i].id;
         await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "delete", id: id }) });
         clientes.splice(i, 1);
@@ -259,7 +257,8 @@
     function limpiar() {
         document.querySelectorAll('input').forEach(i => i.value = '');
         document.getElementById('editIndex').value = "-1";
-        document.getElementById('btnPrincipal').innerText = "💾 GUARDAR CLIENTE";
+        document.getElementById('fechaIngresoOriginal').value = "";
+        document.getElementById('btnPrincipal').innerText = "💾 GUARDAR / ACTUALIZAR";
     }
 
     window.onload = cargarDatos;
