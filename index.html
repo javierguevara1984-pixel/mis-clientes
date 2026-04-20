@@ -8,49 +8,37 @@
         body { font-family: 'Segoe UI', sans-serif; margin: 10px; background-color: #f0f2f5; color: #333; }
         .container { max-width: 1200px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         h2 { color: #1a73e8; text-align: center; margin-bottom: 25px; }
-        
-        /* Formulario */
         .form-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 30px; background: #f8f9fa; padding: 20px; border-radius: 10px; }
         @media (min-width: 768px) { .form-grid { grid-template-columns: repeat(3, 1fr); } }
-        
         input, select, button { padding: 12px; border-radius: 8px; border: 1px solid #ddd; width: 100%; box-sizing: border-box; font-size: 14px; }
-        
-        .btn-principal { background-color: #1a73e8; color: white; font-weight: bold; grid-column: 1 / -1; height: 50px; cursor: pointer; border: none; transition: 0.3s; }
+        .btn-principal { background-color: #1a73e8; color: white; font-weight: bold; grid-column: 1 / -1; height: 50px; cursor: pointer; border: none; }
         .btn-principal.modo-edicion { background-color: #f4b400; }
-        .btn-principal:hover { opacity: 0.9; }
-
-        /* Tabla */
         .table-container { overflow-x: auto; margin-top: 10px; }
-        table { width: 100%; border-collapse: collapse; min-width: 900px; }
+        table { width: 100%; border-collapse: collapse; min-width: 1000px; }
         th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
-        th { background-color: #ffffff; color: #5f6368; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
-        
-        /* Estados */
+        th { background-color: #ffffff; color: #5f6368; text-transform: uppercase; font-size: 12px; }
         .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; border: none; cursor: pointer; }
         .pagado { background-color: #e6f4ea; color: #1e7e34; }
         .pendiente { background-color: #fce8e6; color: #d93025; }
-        
-        /* Acciones */
-        .btn-accion { padding: 8px; border-radius: 6px; border: 1px solid #ddd; cursor: pointer; background: white; margin-right: 5px; transition: 0.2s; }
-        .btn-accion:hover { background: #f0f0f0; }
-        
-        .loading { color: #f4b400; font-weight: bold; text-align: center; display: none; padding: 15px; font-size: 14px; }
+        .btn-accion { padding: 8px; border-radius: 6px; border: 1px solid #ddd; cursor: pointer; background: white; margin-right: 5px; }
+        .btn-eliminar { color: #d93025; border-color: #fce8e6; }
+        .btn-eliminar:hover { background-color: #fce8e6; }
+        .loading { color: #f4b400; font-weight: bold; text-align: center; display: none; padding: 15px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h2>Panel de Control de Clientes</h2>
-    
-    <div id="statusCarga" class="loading">⏳ Procesando con la nube...</div>
+    <div id="statusCarga" class="loading">⏳ Sincronizando con la nube...</div>
     
     <div class="form-grid">
         <input type="hidden" id="editIndex" value="-1">
         <input type="text" id="nombre" placeholder="Nombre completo">
-        <input type="tel" id="telefono" placeholder="Teléfono (ej: 504...)">
+        <input type="tel" id="telefono" placeholder="WhatsApp (ej: 504...)">
         <input type="text" id="direccion" placeholder="Dirección">
         <input type="number" id="precio" placeholder="Precio ($)">
-        <input type="text" id="plan" placeholder="Plan contratado">
+        <input type="text" id="plan" placeholder="Plan">
         <select id="fechaPago">
             <option value="1">Día de Pago: 1</option>
             <option value="15">Día de Pago: 15</option>
@@ -78,32 +66,27 @@
 </div>
 
 <script>
-    // URL Actualizada según tu solicitud
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzha-FI4ghQY-O8WkRvNN1jIhWjmNLCGxuMx9lvFvmTYtkkPFQrnoyfijX7dOqD0qhw/exec";
     
     let clientes = [];
 
-    // Función para cargar datos al iniciar
     async function cargarDatos() {
-        const loader = document.getElementById('statusCarga');
-        loader.style.display = 'block';
+        document.getElementById('statusCarga').style.display = 'block';
         try {
-            const res = await fetch(WEB_APP_URL, { redirect: "follow" });
+            const res = await fetch(`${WEB_APP_URL}?t=${Date.now()}`, { redirect: "follow" });
             clientes = await res.json();
             actualizarVista();
         } catch (e) {
-            console.error("Error cargando datos:", e);
             clientes = JSON.parse(localStorage.getItem('backup_clientes')) || [];
             actualizarVista();
         }
-        loader.style.display = 'none';
+        document.getElementById('statusCarga').style.display = 'none';
     }
 
-    // Función para Guardar o Editar
     async function procesarCliente() {
         const index = document.getElementById('editIndex').value;
-        
-        const clienteData = {
+        const c = {
+            action: "upsert",
             id: index === "-1" ? Date.now() : clientes[index].id,
             nombre: document.getElementById('nombre').value,
             telefono: document.getElementById('telefono').value,
@@ -114,30 +97,37 @@
             estadoPago: index === "-1" ? "Pendiente" : clientes[index].estadoPago
         };
 
-        if(!clienteData.nombre || !clienteData.telefono) return alert("Nombre y Teléfono son necesarios.");
+        if(!c.nombre || !c.telefono) return alert("Nombre y Teléfono son obligatorios.");
 
+        document.getElementById('statusCarga').style.display = 'block';
+        try {
+            await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(c) });
+            if(index === "-1") clientes.push(c); else clientes[index] = c;
+            limpiar();
+            actualizarVista();
+        } catch (e) { alert("Error al sincronizar."); }
+        document.getElementById('statusCarga').style.display = 'none';
+    }
+
+    async function eliminarUsuario(i) {
+        if(!confirm(`¿Estás seguro de eliminar a ${clientes[i].nombre}?`)) return;
+
+        const idEliminar = clientes[i].id;
         document.getElementById('statusCarga').style.display = 'block';
 
         try {
-            // Sincronización con Google Sheets
+            // Enviamos la instrucción de eliminar al Script de Google
             await fetch(WEB_APP_URL, { 
                 method: "POST", 
                 mode: "no-cors", 
-                body: JSON.stringify(clienteData) 
+                body: JSON.stringify({ action: "delete", id: idEliminar }) 
             });
             
-            // Actualización local
-            if(index === "-1") {
-                clientes.push(clienteData);
-            } else {
-                clientes[index] = clienteData;
-            }
-            
-            limpiarFormulario();
+            clientes.splice(i, 1);
             actualizarVista();
         } catch (e) {
-            alert("Error de red. Los cambios se reflejarán localmente.");
-            if(index === "-1") clientes.push(clienteData); else clientes[index] = clienteData;
+            alert("Error al eliminar en la nube, se borró de la vista local.");
+            clientes.splice(i, 1);
             actualizarVista();
         }
         document.getElementById('statusCarga').style.display = 'none';
@@ -147,7 +137,6 @@
         localStorage.setItem('backup_clientes', JSON.stringify(clientes));
         const cuerpo = document.getElementById('cuerpoTabla');
         cuerpo.innerHTML = "";
-
         clientes.forEach((c, i) => {
             cuerpo.innerHTML += `
                 <tr>
@@ -156,22 +145,18 @@
                     <td>${c.direccion || '-'}</td>
                     <td>$${c.precio}</td>
                     <td>Día ${c.fechaPago}</td>
-                    <td>
-                        <button class="status-badge ${c.estadoPago.toLowerCase()}" onclick="cambiarEstado(${i})">
-                            ${c.estadoPago}
-                        </button>
-                    </td>
+                    <td><button class="status-badge ${c.estadoPago.toLowerCase()}" onclick="cambiarEstado(${i})">${c.estadoPago}</button></td>
                     <td>${c.plan || '-'}</td>
                     <td>
-                        <button class="btn-accion" onclick="prepararEdicion(${i})" title="Editar">✏️</button>
-                        <button class="btn-accion" onclick="enviarWhatsApp('${c.nombre}','${c.telefono}')" title="WhatsApp">📲</button>
+                        <button class="btn-accion" onclick="editar(${i})" title="Editar">✏️</button>
+                        <button class="btn-accion" onclick="enviarWA('${c.nombre}','${c.telefono}')" title="WhatsApp">📲</button>
+                        <button class="btn-accion btn-eliminar" onclick="eliminarUsuario(${i})" title="Eliminar">🗑️</button>
                     </td>
                 </tr>`;
         });
     }
 
-    // Cargar datos al formulario para editar
-    function prepararEdicion(i) {
+    function editar(i) {
         const c = clientes[i];
         document.getElementById('editIndex').value = i;
         document.getElementById('nombre').value = c.nombre;
@@ -180,11 +165,10 @@
         document.getElementById('precio').value = c.precio;
         document.getElementById('plan').value = c.plan;
         document.getElementById('fechaPago').value = c.fechaPago;
-        
         const btn = document.getElementById('btnPrincipal');
-        btn.innerText = "🔄 ACTUALIZAR DATOS";
+        btn.innerText = "🔄 ACTUALIZAR USUARIO";
         btn.classList.add("modo-edicion");
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo(0,0);
     }
 
     function cambiarEstado(i) {
@@ -192,14 +176,14 @@
         actualizarVista();
     }
 
-    function enviarWhatsApp(nombre, tel) {
-        const mensaje = encodeURIComponent(`Hola ${nombre}, te saludamos de Internet Cloud para recordarte tu pago mensual. ¡Muchas gracias!`);
-        window.open(`https://wa.me/${tel}?text=${mensaje}`, '_blank');
+    function enviarWA(n, t) {
+        const m = encodeURIComponent(`Hola ${n}, recordatorio de pago de Internet. Gracias.`);
+        window.open(`https://wa.me/${t}?text=${m}`, '_blank');
     }
 
-    function limpiarFormulario() {
+    function limpiar() {
+        document.querySelectorAll('input').forEach(i => i.value = '');
         document.getElementById('editIndex').value = "-1";
-        document.querySelectorAll('input').forEach(input => input.value = '');
         const btn = document.getElementById('btnPrincipal');
         btn.innerText = "💾 GUARDAR Y SINCRONIZAR";
         btn.classList.remove("modo-edicion");
