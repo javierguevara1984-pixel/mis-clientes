@@ -270,7 +270,17 @@
 
     function enviarWA(i) {
         const c = clientes[i];
-        const msg = encodeURIComponent(`Hola ${c.nombre}, te saludamos de NewLink Wireless para confirmar tu pago. ¡Gracias!`);
+        const msg = encodeURIComponent(`Hola ${c.nombre}, Buen día estimados cliente,  te saludamos de NewLink Wireless para confirmar tu pago pendiente de Internet.
+
+Puede realizar deposito o transferencia a las siguientes cuentas. 
+
+Número de cuenta BAC: 756950421
+
+Si usted ya realizo pago de servicio favor disculpar las molestias.
+
+Si realizara el pago del servicio por medio de trasferencia o deposito favor compartir comprobante de pago.
+
+Saludos. ¡Gracias!`);
         window.open(`https://wa.me/${c.telefono}?text=${msg}`, '_blank');
     }
 
