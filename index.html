@@ -5,186 +5,157 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión Internet Cloud</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; margin: 20px; background-color: #f0f2f5; }
-        .container { max-width: 1050px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h2 { color: #1a73e8; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        input, select, button { padding: 12px; border-radius: 6px; border: 1px solid #ddd; font-size: 14px; }
-        button { cursor: pointer; font-weight: bold; transition: 0.3s; border: none; }
-        .btn-guardar { background-color: #1a73e8; color: white; grid-column: span 3; margin-top: 10px; }
-        .filtros { display: flex; gap: 10px; margin: 20px 0; }
-        .btn-filtro { background-color: #34a853; color: white; flex: 1; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { border: 1px solid #eee; padding: 12px; text-align: left; font-size: 13px; }
-        th { background-color: #f8f9fa; }
-        .status-badge { padding: 5px 10px; border-radius: 20px; font-size: 10px; cursor: pointer; font-weight: bold; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 10px; background-color: #f0f2f5; }
+        .container { max-width: 1100px; margin: auto; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { color: #1a73e8; text-align: center; }
+        .form-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 20px; }
+        @media (min-width: 600px) { .form-grid { grid-template-columns: repeat(3, 1fr); } }
+        input, select, button { padding: 12px; border-radius: 8px; border: 1px solid #ddd; width: 100%; box-sizing: border-box; }
+        .btn-guardar { background-color: #1a73e8; color: white; font-weight: bold; grid-column: 1 / -1; height: 50px; cursor: pointer; border: none; }
+        .btn-actualizar { background-color: #f4b400; color: white; font-weight: bold; grid-column: 1 / -1; height: 50px; cursor: pointer; border: none; }
+        .table-container { overflow-x: auto; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
+        th { background-color: #f8f9fa; color: #5f6368; }
+        .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; border: none; cursor: pointer; }
         .pagado { background-color: #e6f4ea; color: #1e7e34; }
         .pendiente { background-color: #fce8e6; color: #d93025; }
-        .resumen-financiero { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 25px; padding: 20px; background: #f8f9fa; border-radius: 10px; }
-        .loading { color: orange; font-weight: bold; text-align: center; margin: 10px 0; display: none; }
+        .btn-accion { padding: 6px; border-radius: 4px; border: 1px solid #ddd; cursor: pointer; background: white; margin-right: 5px; }
+        .loading { color: #f4b400; font-weight: bold; text-align: center; display: none; padding: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Panel de Control Cloud</h2>
-    <div id="statusCarga" class="loading">⏳ Conectando con Google Sheets...</div>
+    <h2>Panel de Control</h2>
+    <div id="statusCarga" class="loading">⏳ Sincronizando...</div>
     
     <div class="form-grid">
         <input type="hidden" id="editIndex" value="-1">
-        <input type="text" id="nombre" placeholder="Nombre del Cliente">
-        <input type="tel" id="telefono" placeholder="WhatsApp (ej: 504...)">
+        <input type="text" id="nombre" placeholder="Nombre">
+        <input type="tel" id="telefono" placeholder="Teléfono (WhatsApp)">
         <input type="text" id="direccion" placeholder="Dirección">
-        <input type="text" id="plan" placeholder="Plan contratado">
         <input type="number" id="precio" placeholder="Precio ($)">
+        <input type="text" id="plan" placeholder="Plan">
         <select id="fechaPago">
-            <option value="1">Día de Corte: 1</option>
-            <option value="15">Día de Corte: 15</option>
+            <option value="1">Fecha de Pago: Día 1</option>
+            <option value="15">Fecha de Pago: Día 15</option>
         </select>
-        <button id="btnPrincipal" class="btn-guardar" onclick="procesarCliente()">💾 Guardar y Sincronizar</button>
+        <button id="btnPrincipal" class="btn-guardar" onclick="procesarCliente()">💾 GUARDAR Y SINCRONIZAR</button>
     </div>
 
-    <div class="filtros">
-        <button class="btn-filtro" onclick="filtrar('todos')">Todos</button>
-        <button class="btn-filtro" onclick="filtrar('1')">Día 1</button>
-        <button class="btn-filtro" onclick="filtrar('15')">Día 15</button>
-    </div>
-
-    <table id="tablaClientes">
-        <thead>
-            <tr>
-                <th>Nombre</th>
-                <th>Plan ($)</th>
-                <th>Corte</th>
-                <th>Estado Pago</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody id="cuerpoTabla"></tbody>
-    </table>
-
-    <div class="resumen-financiero">
-        <div style="text-align:center"><span>TOTAL</span><br><b id="sumaTotal">$0</b></div>
-        <div style="text-align:center"><span>PAGADO</span><br><b id="sumaPagados" style="color:green">$0</b></div>
-        <div style="text-align:center"><span>PENDIENTE</span><br><b id="sumaPendientes" style="color:red">$0</b></div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Teléfono</th>
+                    <th>Dirección</th>
+                    <th>Precio</th>
+                    <th>Fecha Pago</th>
+                    <th>Estado</th>
+                    <th>Plan</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="cuerpoTabla"></tbody>
+        </table>
     </div>
 </div>
 
 <script>
-    // URL DE TU SCRIPT DE GOOGLE (ACTUALIZADA)
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwhtE3Fqiqrv29SzUWGC3yZrvxe3rc4W2PaO710NLu4E8ZnWn1bjtVHz9Q19ovudbLx/exec";
-    
     let clientes = [];
-    let filtroActual = 'todos';
 
-    // Esta es la URL que me indicaste
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwhtE3Fqiqrv29SzUWGC3yZrvxe3rc4W2PaO710NLu4E8ZnWn1bjtVHz9Q19ovudbLx/exec";
-
-async function cargarDatos() {
-    const loader = document.getElementById('statusCarga');
-    if (loader) loader.style.display = 'block';
-    try {
-        // El parámetro redirect: "follow" es vital para que Google responda
-        const res = await fetch(WEB_APP_URL, { 
-            method: "GET",
-            redirect: "follow" 
-        });
-        const data = await res.json();
-        if(data) {
-            clientes = data;
-            actualizarVista();
-        }
-    } catch (e) {
-        console.error("Error:", e);
-        // Usa los datos guardados en el celular si la red falla
-        clientes = JSON.parse(localStorage.getItem('backup_clientes')) || [];
-        actualizarVista();
-    }
-    if (loader) loader.style.display = 'none';
-}
-            if (!response.ok) throw new Error("Error en servidor");
-
-            const data = await response.json();
-            clientes = data;
-            actualizarVista();
-            status.style.display = 'none';
-        } catch (error) {
-            console.error("Error cargando datos:", error);
-            // Si falla la red, intenta cargar lo que se guardó la última vez en este navegador
-            clientes = JSON.parse(localStorage.getItem('backup_clientes')) || [];
-            actualizarVista();
-            status.innerText = "⚠️ Error de conexión. Usando datos locales.";
-            setTimeout(() => { status.style.display = 'none'; }, 4000);
-        }
-    }
-
-    async function procesarCliente() {
-        const nombre = document.getElementById('nombre').value;
-        const precio = parseFloat(document.getElementById('precio').value);
-        const telefono = document.getElementById('telefono').value;
-
-        if(!nombre || isNaN(precio)) return alert("Nombre y Precio son obligatorios.");
-
-        const nuevoCliente = {
-            id: Date.now(),
-            nombre: nombre,
-            telefono: telefono,
-            direccion: document.getElementById('direccion').value,
-            plan: document.getElementById('plan').value,
-            precio: precio,
-            fechaPago: document.getElementById('fechaPago').value,
-            estadoPago: "Pendiente",
-            servicio: "Activo"
-        };
-
+    async function cargarDatos() {
         document.getElementById('statusCarga').style.display = 'block';
-        document.getElementById('statusCarga').innerText = "📤 Sincronizando...";
-
         try {
-            await fetch(WEB_APP_URL, {
-                method: "POST",
-                mode: "no-cors", // Requerido para evitar errores de seguridad al enviar
-                body: JSON.stringify(nuevoCliente)
-            });
-            
-            clientes.push(nuevoCliente);
+            const res = await fetch(WEB_APP_URL, { redirect: "follow" });
+            const data = await res.json();
+            clientes = data;
             actualizarVista();
-            limpiarFormulario();
         } catch (e) {
-            alert("Guardado localmente (error de red).");
-            clientes.push(nuevoCliente);
+            clientes = JSON.parse(localStorage.getItem('backup_clientes')) || [];
             actualizarVista();
         }
         document.getElementById('statusCarga').style.display = 'none';
-        document.getElementById('statusCarga').innerText = "⏳ Conectando con Google Sheets...";
+    }
+
+    async function procesarCliente() {
+        const index = document.getElementById('editIndex').value;
+        const btn = document.getElementById('btnPrincipal');
+        
+        const c = {
+            id: index === "-1" ? Date.now() : clientes[index].id,
+            nombre: document.getElementById('nombre').value,
+            telefono: document.getElementById('telefono').value,
+            direccion: document.getElementById('direccion').value,
+            precio: parseFloat(document.getElementById('precio').value) || 0,
+            plan: document.getElementById('plan').value,
+            fechaPago: document.getElementById('fechaPago').value,
+            estadoPago: index === "-1" ? "Pendiente" : clientes[index].estadoPago
+        };
+
+        if(!c.nombre || !c.telefono) return alert("Nombre y Teléfono son obligatorios");
+
+        document.getElementById('statusCarga').style.display = 'block';
+        try {
+            // Enviar a Google Sheets
+            await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(c) });
+            
+            if(index === "-1") clientes.push(c); else clientes[index] = c;
+            
+            cancelarEdicion();
+            actualizarVista();
+            limpiar();
+        } catch (e) { alert("Error al sincronizar"); }
+        document.getElementById('statusCarga').style.display = 'none';
     }
 
     function actualizarVista() {
         localStorage.setItem('backup_clientes', JSON.stringify(clientes));
         const cuerpo = document.getElementById('cuerpoTabla');
         cuerpo.innerHTML = "";
-        let total = 0, pagado = 0, pendiente = 0;
 
-        const filtrados = filtroActual === 'todos' ? clientes : clientes.filter(c => String(c.fechaPago) === filtroActual);
-
-        filtrados.forEach((c, i) => {
-            total += c.precio;
-            if(c.estadoPago === "Pagado") pagado += c.precio; else pendiente += c.precio;
-            
+        clientes.forEach((c, i) => {
             cuerpo.innerHTML += `
                 <tr>
                     <td><b>${c.nombre}</b></td>
-                    <td>${c.plan} ($${c.precio})</td>
+                    <td>${c.telefono}</td>
+                    <td>${c.direccion || '-'}</td>
+                    <td>$${c.precio}</td>
                     <td>Día ${c.fechaPago}</td>
                     <td><button class="status-badge ${c.estadoPago.toLowerCase()}" onclick="cambiarEstado(${i})">${c.estadoPago}</button></td>
+                    <td>${c.plan || '-'}</td>
                     <td>
-                        <button onclick="enviarAviso('${c.nombre}','${c.telefono}')">📲 WA</button>
+                        <button class="btn-accion" onclick="editar(${i})">✏️</button>
+                        <button class="btn-accion" onclick="enviarWA('${c.nombre}','${c.telefono}')">📲</button>
                     </td>
                 </tr>`;
         });
-        document.getElementById('sumaTotal').innerText = `$${total}`;
-        document.getElementById('sumaPagados').innerText = `$${pagado}`;
-        document.getElementById('sumaPendientes').innerText = `$${pendiente}`;
+    }
+
+    function editar(i) {
+        const c = clientes[i];
+        document.getElementById('editIndex').value = i;
+        document.getElementById('nombre').value = c.nombre;
+        document.getElementById('telefono').value = c.telefono;
+        document.getElementById('direccion').value = c.direccion;
+        document.getElementById('precio').value = c.precio;
+        document.getElementById('plan').value = c.plan;
+        document.getElementById('fechaPago').value = c.fechaPago;
+        
+        const btn = document.getElementById('btnPrincipal');
+        btn.innerText = "🔄 ACTUALIZAR USUARIO";
+        btn.className = "btn-actualizar";
+        window.scrollTo(0,0);
+    }
+
+    function cancelarEdicion() {
+        document.getElementById('editIndex').value = "-1";
+        const btn = document.getElementById('btnPrincipal');
+        btn.innerText = "💾 GUARDAR Y SINCRONIZAR";
+        btn.className = "btn-guardar";
     }
 
     function cambiarEstado(i) {
@@ -192,20 +163,15 @@ async function cargarDatos() {
         actualizarVista();
     }
 
-    function enviarAviso(nombre, tel) {
-        const msg = encodeURIComponent(`Hola ${nombre}, te recordamos tu pago de internet mensual. ¡Gracias!`);
-        window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
+    function enviarWA(n, t) {
+        const msg = encodeURIComponent(`Hola ${n}, te saludamos de Internet Cloud. Recordatorio de tu pago. Gracias.`);
+        window.open(`https://wa.me/${t}?text=${msg}`, '_blank');
     }
 
-    function limpiarFormulario() {
-        document.getElementById('nombre').value = '';
-        document.getElementById('precio').value = '';
-        document.getElementById('telefono').value = '';
-        document.getElementById('direccion').value = '';
-        document.getElementById('plan').value = '';
+    function limpiar() {
+        document.querySelectorAll('input').forEach(i => i.value = '');
+        document.getElementById('editIndex').value = "-1";
     }
-
-    function filtrar(dia) { filtroActual = dia; actualizarVista(); }
 
     window.onload = cargarDatos;
 </script>
