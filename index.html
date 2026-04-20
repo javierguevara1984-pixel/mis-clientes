@@ -24,9 +24,11 @@
         .form-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 25px; background: #f8f9fa; padding: 15px; border-radius: 10px; }
         @media (min-width: 768px) { .form-grid { grid-template-columns: repeat(3, 1fr); } }
         input, select, button { padding: 10px; border-radius: 6px; border: 1px solid #ddd; width: 100%; box-sizing: border-box; }
-        .btn-principal { background: #1a73e8; color: white; font-weight: bold; grid-column: 1 / -1; height: 45px; border: none; cursor: pointer; }
+        
+        .btn-group-form { grid-column: 1 / -1; display: flex; gap: 10px; }
+        .btn-principal { background: #1a73e8; color: white; font-weight: bold; flex: 2; border: none; cursor: pointer; height: 45px; }
+        .btn-limpiar { background: #5f6368; color: white; flex: 1; border: none; cursor: pointer; }
 
-        /* Estilos de Filtros */
         .controls { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
         .search-bar { padding: 12px; border-radius: 8px; border: 2px solid #1a73e8; width: 100%; box-sizing: border-box; }
         .filter-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; }
@@ -60,12 +62,12 @@
 
     <div class="dashboard">
         <div class="card total-clientes"><span>CLIENTES</span><div id="cantClientes">0</div></div>
-        <div class="card monto-total"><span>TOTAL</span><div id="montoTotal">$0</div></div>
+        <div class="card monto-total"><span>TOTAL MENSUAL</span><div id="montoTotal">$0</div></div>
         <div class="card recaudado"><span>COBRADO</span><div id="montoPagado">$0</div></div>
-        <div class="card pendiente"><span>PENDIENTE</span><div id="montoPendiente">$0</div></div>
+        <div class="card pendiente"><span>POR COBRAR</span><div id="montoPendiente">$0</div></div>
     </div>
 
-    <div id="statusCarga" class="loading">⏳ Sincronizando...</div>
+    <div id="statusCarga" class="loading">⏳ Sincronizando con base de datos...</div>
 
     <div class="form-grid">
         <input type="hidden" id="editIndex" value="-1">
@@ -78,7 +80,10 @@
             <option value="1">Día de pago: 1</option>
             <option value="15">Día de pago: 15</option>
         </select>
-        <button id="btnPrincipal" class="btn-principal" onclick="procesarCliente()">💾 GUARDAR / ACTUALIZAR</button>
+        <div class="btn-group-form">
+            <button id="btnPrincipal" class="btn-principal" onclick="procesarCliente()">💾 GUARDAR CAMBIOS</button>
+            <button class="btn-limpiar" onclick="limpiar()">➕ NUEVO / LIMPIAR</button>
+        </div>
     </div>
 
     <div class="controls">
@@ -139,7 +144,7 @@
 
     function actualizarVista() {
         const cuerpo = document.getElementById('cuerpoTabla');
-        cuerpo.innerHTML = ""; // Limpieza total para evitar duplicados
+        cuerpo.innerHTML = ""; 
         
         const busqueda = document.getElementById('buscador').value.toLowerCase();
         const mesFiltro = document.getElementById('mesSeleccionado').value;
@@ -150,12 +155,10 @@
             const estaPagado = (c.ultimoMesPago || "").includes(mesFiltro);
             const precio = parseFloat(c.precio) || 0;
 
-            // Lógica de Filtros Combinados
             const cumpleBusqueda = c.nombre.toLowerCase().includes(busqueda);
             const cumpleDia = (filtroActivo === 'todos' || filtroActivo === 'Pendiente' || c.fechaPago == filtroActivo);
             const cumpleEstado = (filtroActivo !== 'Pendiente' || !estaPagado);
 
-            // Contadores globales
             cant++;
             t += precio;
             if(estaPagado) p += precio; else pen += precio;
@@ -169,7 +172,8 @@
                         <td>Día ${c.fechaPago}</td>
                         <td>
                             <button class="status-badge ${estaPagado ? 'pagado' : 'no-pagado'}" 
-                                onclick="togglePago(${i}, '${mesFiltro}')">${estaPagado ? 'PAGADO' : 'PENDIENTE'}
+                                onclick="togglePago(${i}, '${mesFiltro}')">
+                                ${estaPagado ? 'PAGADO' : 'PENDIENTE'}
                             </button>
                         </td>
                         <td>${c.plan || '-'}</td>
@@ -190,12 +194,22 @@
         localStorage.setItem('backup_newlink', JSON.stringify(clientes));
     }
 
+    // ACTUALIZA EL PAGO AUTOMÁTICAMENTE EN LA BASE DE DATOS
     async function togglePago(i, mes) {
         let lista = (clientes[i].ultimoMesPago || "").split(",").filter(x => x);
         lista.includes(mes) ? lista = lista.filter(x => x !== mes) : lista.push(mes);
         clientes[i].ultimoMesPago = lista.join(",");
-        actualizarVista();
-        await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "upsert", ...clientes[i] }) });
+        
+        actualizarVista(); // Cambio visual instantáneo
+        
+        // Envío automático a la base de datos
+        document.getElementById('statusCarga').style.display = 'block';
+        await fetch(WEB_APP_URL, { 
+            method: "POST", 
+            mode: "no-cors", 
+            body: JSON.stringify({ action: "upsert", ...clientes[i] }) 
+        });
+        document.getElementById('statusCarga').style.display = 'none';
     }
 
     function generarRecibo(i) {
@@ -222,6 +236,7 @@
         doc.save(`Recibo_${c.nombre}.pdf`);
     }
 
+    // SOLO PARA GUARDAR O ACTUALIZAR DATOS MAESTROS DEL CLIENTE
     async function procesarCliente() {
         const idx = document.getElementById('editIndex').value;
         const c = {
@@ -237,9 +252,16 @@
         };
 
         if(!c.nombre) return alert("El nombre es obligatorio");
+        
         document.getElementById('statusCarga').style.display = 'block';
         await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(c) });
-        if(idx === "-1") clientes.push(c); else clientes[idx] = c;
+        
+        if(idx === "-1") {
+            clientes.push(c); 
+        } else {
+            clientes[idx] = c;
+        }
+        
         limpiar();
         actualizarVista();
         document.getElementById('statusCarga').style.display = 'none';
@@ -254,7 +276,7 @@
         document.getElementById('precio').value = c.precio;
         document.getElementById('plan').value = c.plan;
         document.getElementById('fechaPago').value = c.fechaPago;
-        document.getElementById('btnPrincipal').innerText = "🔄 ACTUALIZAR DATOS";
+        document.getElementById('btnPrincipal').innerText = "🔄 ACTUALIZAR CLIENTE";
         window.scrollTo(0,0);
     }
 
@@ -270,24 +292,14 @@
 
     function enviarWA(i) {
         const c = clientes[i];
-        const msg = encodeURIComponent(`Hola ${c.nombre}, te saludamos de NewLink Wireless para confirmar tu pago pendiente de Internet.
-
-Puede realizar deposito o transferencia a las siguientes cuentas. 
-
-Número de cuenta BAC: 756950421
-
-Si usted ya realizo pago de servicio favor disculpar las molestias.
-
-Si realizara el pago del servicio por medio de trasferencia o deposito favor compartir comprobante de pago.
-
-Saludos. ¡Gracias!`);
+        const msg = encodeURIComponent(`Hola ${c.nombre}, te saludamos de NewLink Wireless para confirmar tu pago del mes. ¡Gracias por tu preferencia!`);
         window.open(`https://wa.me/${c.telefono}?text=${msg}`, '_blank');
     }
 
     function limpiar() {
         document.querySelectorAll('input').forEach(i => i.value = '');
         document.getElementById('editIndex').value = "-1";
-        document.getElementById('btnPrincipal').innerText = "💾 GUARDAR / ACTUALIZAR";
+        document.getElementById('btnPrincipal').innerText = "💾 GUARDAR NUEVO CLIENTE";
     }
 
     window.onload = cargarDatos;
