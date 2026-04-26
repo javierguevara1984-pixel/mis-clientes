@@ -114,8 +114,7 @@
         </table>
     </div>
 </div>
-
-<script>
+    <script>
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby2nBhAMrt-6jirppBjSJWLRoo_41gtc_sqDJxWY76DI4OU5G-ZeeW1rNP2qR7Ick0A/exec";
     let clientes = [];
     let filtroActivo = 'todos';
@@ -155,8 +154,6 @@
 
         clientes.forEach((c, i) => {
             const estaPagado = (c.ultimoMesPago || "").includes(mesFiltro);
-            
-            // Limpiamos el precio si viene con "L" desde el script
             const precioLimpio = c.precio ? c.precio.toString().replace(/[L\s,]/g, '') : 0;
             const precio = parseFloat(precioLimpio) || 0;
 
@@ -164,33 +161,31 @@
             const cumpleDia = (filtroActivo === 'todos' || filtroActivo === 'Pendiente' || c.fechaPago == filtroActivo);
             const cumpleEstado = (filtroActivo !== 'Pendiente' || !estaPagado);
 
-            if (cumpleBusqueda) {
+            if (cumpleBusqueda && cumpleDia && cumpleEstado) {
                 cant++;
                 t += precio;
                 if(estaPagado) p += precio; else pen += precio;
 
-                if (cumpleDia && cumpleEstado) {
-                    cuerpo.innerHTML += `
-                        <tr>
-                            <td><b>${c.nombre}</b><br><small style="color:gray">${c.direccion || ''}</small></td>
-                            <td>${c.telefono}</td>
-                            <td>L ${precio.toFixed(2)}</td>
-                            <td>Día ${c.fechaPago}</td>
-                            <td>
-                                <button class="status-badge ${estaPagado ? 'pagado' : 'no-pagado'}" 
-                                    onclick="togglePago(${i}, '${mesFiltro}')">
-                                    ${estaPagado ? 'PAGADO' : 'PENDIENTE'}
-                                </button>
-                            </td>
-                            <td>${c.plan || '-'}</td>
-                            <td>
-                                <button class="btn-accion" onclick="generarRecibo(${i})">📄</button>
-                                <button class="btn-accion" onclick="editar(${i})">✏️</button>
-                                <button class="btn-accion" onclick="enviarWA(${i})">📲</button>
-                                <button class="btn-accion" style="color:red" onclick="eliminarUsuario(${i})">🗑️</button>
-                            </td>
-                        </tr>`;
-                }
+                cuerpo.innerHTML += `
+                    <tr>
+                        <td><b>${c.nombre}</b><br><small style="color:gray">${c.direccion || ''}</small></td>
+                        <td>${c.telefono}</td>
+                        <td>L ${precio.toFixed(2)}</td>
+                        <td>Día ${c.fechaPago}</td>
+                        <td>
+                            <button class="status-badge ${estaPagado ? 'pagado' : 'no-pagado'}" 
+                                onclick="togglePago(${i}, '${mesFiltro}')">
+                                ${estaPagado ? 'PAGADO' : 'PENDIENTE'}
+                            </button>
+                        </td>
+                        <td>${c.plan || '-'}</td>
+                        <td>
+                            <button class="btn-accion" onclick="generarRecibo(${i})">📄</button>
+                            <button class="btn-accion" onclick="editar(${i})">✏️</button>
+                            <button class="btn-accion" onclick="enviarWA(${i})">📲</button>
+                            <button class="btn-accion" style="color:red" onclick="eliminarUsuario(${i})">🗑️</button>
+                        </td>
+                    </tr>`;
             }
         });
 
@@ -212,9 +207,7 @@
             lista.push(mes);
         }
 
-        const nuevoEstado = lista.join(",");
-        cliente.ultimoMesPago = nuevoEstado;
-
+        cliente.ultimoMesPago = lista.join(",");
         actualizarVista();
         mostrarCarga(true);
 
@@ -234,6 +227,7 @@
     async function procesarCliente() {
         const btn = document.getElementById('btnPrincipal');
         const nombreInput = document.getElementById('nombre').value.trim();
+        if(!nombreInput) return alert("El nombre es obligatorio");
 
         const c = {
             action: "upsert",
@@ -243,12 +237,9 @@
             precio: document.getElementById('precio').value,
             plan: document.getElementById('plan').value,
             fechaPago: document.getElementById('fechaPago').value,
-            // Mantener estados previos si es edición
             ultimoMesPago: clientes.find(cli => cli.nombre.toLowerCase() === nombreInput.toLowerCase())?.ultimoMesPago || ""
         };
 
-        if(!c.nombre) return alert("El nombre es obligatorio");
-        
         btn.disabled = true;
         mostrarCarga(true);
 
@@ -257,7 +248,7 @@
             await cargarDatos();
             limpiar();
         } catch (e) {
-            alert("Error de conexión al guardar.");
+            alert("Error de conexión.");
         } finally {
             btn.disabled = false;
             mostrarCarga(false);
@@ -269,7 +260,6 @@
         document.getElementById('nombre').value = c.nombre;
         document.getElementById('telefono').value = c.telefono;
         document.getElementById('direccion').value = c.direccion;
-        // Limpiamos el precio para el input numérico
         document.getElementById('precio').value = c.precio ? c.precio.toString().replace(/[L\s,]/g, '') : "";
         document.getElementById('plan').value = c.plan;
         document.getElementById('fechaPago').value = c.fechaPago;
@@ -282,8 +272,8 @@
     }
 
     function limpiar() {
-        document.querySelectorAll('input').forEach(i => i.value = '');
-        document.getElementById('btnPrincipal').innerText = "💾 GUARDAR NUEVO CLIENTE";
+        document.querySelectorAll('.form-grid input').forEach(i => i.value = '');
+        document.getElementById('btnPrincipal').innerText = "💾 GUARDAR CAMBIOS";
     }
 
     function generarRecibo(i) {
@@ -296,7 +286,7 @@
         doc.setFontSize(12);
         doc.text(`Recibo de Pago: ${mes.toUpperCase()}`, 20, 40);
         doc.text(`Cliente: ${c.nombre}`, 20, 50);
-        doc.text(`Monto: ${c.precio.includes('L') ? c.precio : 'L ' + c.precio}`, 20, 60);
+        doc.text(`Monto: L ${c.precio}`, 20, 60);
         doc.text(`Plan: ${c.plan}`, 20, 70);
         doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 20, 80);
         doc.save(`Recibo_${c.nombre}.pdf`);
@@ -304,22 +294,25 @@
 
     async function eliminarUsuario(i) {
         const nombre = clientes[i].nombre;
-        if(!confirm(`¿Estás seguro de eliminar a ${nombre}?`)) return;
-        
+        if(!confirm(`¿Eliminar a ${nombre}?`)) return;
         mostrarCarga(true);
         try {
-            await fetch(WEB_APP_URL, { 
-                method: "POST", 
-                mode: "no-cors", 
-                body: JSON.stringify({ action: "delete", nombre: nombre }) 
-            });
+            await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "delete", nombre: nombre }) });
             await cargarDatos();
-        } catch (e) {
-            alert("Error al eliminar.");
-        }
+        } catch (e) { alert("Error al eliminar."); }
         mostrarCarga(false);
     }
 
     function enviarWA(i) {
         const c = clientes[i];
-        const msg = `Hola ${c.nombre}, te saludamos de NewLink Wireless. Tu pago de este mes ha sido registrado con éxito. ¡Gracias por tu
+        const mes = document.getElementById('mesSeleccionado').value;
+        const msg = `Hola ${c.nombre}, te saludamos de NewLink Wireless. Tu pago del mes de ${mes} ha sido registrado con éxito. ¡Gracias por tu preferencia!`;
+        window.open(`https://wa.me/${c.telefono.replace(/\+/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
+    // Iniciar carga al abrir
+    cargarDatos();
+</script>
+</body>
+</html>
+
