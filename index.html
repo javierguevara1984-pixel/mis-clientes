@@ -63,9 +63,9 @@
 
     <div class="dashboard">
         <div class="card total-clientes"><span>CLIENTES</span><div id="cantClientes">0</div></div>
-        <div class="card monto-total"><span>TOTAL MENSUAL</span><div id="montoTotal">$0</div></div>
-        <div class="card recaudado"><span>COBRADO</span><div id="montoPagado">$0</div></div>
-        <div class="card pendiente"><span>POR COBRAR</span><div id="montoPendiente">$0</div></div>
+        <div class="card monto-total"><span>TOTAL MENSUAL</span><div id="montoTotal">L 0</div></div>
+        <div class="card recaudado"><span>COBRADO</span><div id="montoPagado">L 0</div></div>
+        <div class="card pendiente"><span>POR COBRAR</span><div id="montoPendiente">L 0</div></div>
     </div>
 
     <div id="statusCarga" class="loading">⏳ Procesando... Por favor espera.</div>
@@ -75,8 +75,8 @@
         <input type="text" id="nombre" placeholder="Nombre completo">
         <input type="tel" id="telefono" placeholder="WhatsApp">
         <input type="text" id="direccion" placeholder="Dirección">
-        <input type="number" id="precio" placeholder="Precio $">
-        <input type="text" id="plan" placeholder="Plan contratado">
+        <input type="number" id="precio" placeholder="Precio L">
+        <input type="text" id="plan" placeholder="Plan contratado (Ej: 30 MB)">
         <select id="fechaPago">
             <option value="1">Día de pago: 1</option>
             <option value="15">Día de pago: 15</option>
@@ -116,6 +116,7 @@
 </div>
 
 <script>
+    // REEMPLAZA ESTA URL CON TU NUEVA URL DE IMPLEMENTACIÓN
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby2nBhAMrt-6jirppBjSJWLRoo_41gtc_sqDJxWY76DI4OU5G-ZeeW1rNP2qR7Ick0A/exec";
     let clientes = [];
     let filtroActivo = 'todos';
@@ -155,7 +156,10 @@
 
         clientes.forEach((c, i) => {
             const estaPagado = (c.ultimoMesPago || "").includes(mesFiltro);
-            const precio = parseFloat(c.precio) || 0;
+            
+            // Limpiamos el precio si viene con "L" desde el script
+            const precioLimpio = c.precio ? c.precio.toString().replace(/[L\s,]/g, '') : 0;
+            const precio = parseFloat(precioLimpio) || 0;
 
             const cumpleBusqueda = c.nombre.toLowerCase().includes(busqueda);
             const cumpleDia = (filtroActivo === 'todos' || filtroActivo === 'Pendiente' || c.fechaPago == filtroActivo);
@@ -171,7 +175,7 @@
                         <tr>
                             <td><b>${c.nombre}</b><br><small style="color:gray">${c.direccion || ''}</small></td>
                             <td>${c.telefono}</td>
-                            <td>$${precio}</td>
+                            <td>L ${precio.toFixed(2)}</td>
                             <td>Día ${c.fechaPago}</td>
                             <td>
                                 <button class="status-badge ${estaPagado ? 'pagado' : 'no-pagado'}" 
@@ -192,15 +196,15 @@
         });
 
         document.getElementById('cantClientes').innerText = cant;
-        document.getElementById('montoTotal').innerText = `$${t}`;
-        document.getElementById('montoPagado').innerText = `$${p}`;
-        document.getElementById('montoPendiente').innerText = `$${pen}`;
+        document.getElementById('montoTotal').innerText = `L ${t.toLocaleString()}`;
+        document.getElementById('montoPagado').innerText = `L ${p.toLocaleString()}`;
+        document.getElementById('montoPendiente').innerText = `L ${pen.toLocaleString()}`;
         localStorage.setItem('backup_newlink', JSON.stringify(clientes));
     }
 
     async function togglePago(i, mes) {
         const cliente = clientes[i];
-        let lista = (cliente.ultimoMesPago || "").split(",").filter(x => x);
+        let lista = (cliente.ultimoMesPago || "").split(",").filter(x => x.trim());
         const yaPagado = lista.includes(mes);
 
         if (yaPagado) {
@@ -210,40 +214,38 @@
         }
 
         const nuevoEstado = lista.join(",");
-        const backupEstado = cliente.ultimoMesPago;
         cliente.ultimoMesPago = nuevoEstado;
 
-        actualizarVista(); // Cambio visual inmediato
+        actualizarVista();
         mostrarCarga(true);
 
         try {
-            const res = await fetch(WEB_APP_URL, { 
+            await fetch(WEB_APP_URL, { 
                 method: "POST", 
                 mode: "no-cors", 
                 body: JSON.stringify({ action: "upsert", ...cliente }) 
             });
         } catch (error) {
-            alert("Error al guardar el pago. Reintentando...");
-            cliente.ultimoMesPago = backupEstado;
-            actualizarVista();
+            alert("Error al guardar el pago.");
+            await cargarDatos();
         }
         mostrarCarga(false);
     }
 
     async function procesarCliente() {
         const btn = document.getElementById('btnPrincipal');
-        const idExistente = document.getElementById('editId').value;
-        
+        const nombreInput = document.getElementById('nombre').value.trim();
+
         const c = {
             action: "upsert",
-            id: idExistente || Date.now().toString(), // Mantiene ID si existe para no duplicar
-            nombre: document.getElementById('nombre').value.trim(),
+            nombre: nombreInput,
             telefono: document.getElementById('telefono').value,
             direccion: document.getElementById('direccion').value,
             precio: document.getElementById('precio').value,
             plan: document.getElementById('plan').value,
             fechaPago: document.getElementById('fechaPago').value,
-            ultimoMesPago: idExistente ? (clientes.find(cli => cli.id == idExistente)?.ultimoMesPago || "") : ""
+            // Mantener estados previos si es edición
+            ultimoMesPago: clientes.find(cli => cli.nombre.toLowerCase() === nombreInput.toLowerCase())?.ultimoMesPago || ""
         };
 
         if(!c.nombre) return alert("El nombre es obligatorio");
@@ -253,7 +255,7 @@
 
         try {
             await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(c) });
-            await cargarDatos(); // Recarga limpia desde el servidor
+            await cargarDatos();
             limpiar();
         } catch (e) {
             alert("Error de conexión al guardar.");
@@ -265,11 +267,11 @@
 
     function editar(i) {
         const c = clientes[i];
-        document.getElementById('editId').value = c.id;
         document.getElementById('nombre').value = c.nombre;
         document.getElementById('telefono').value = c.telefono;
         document.getElementById('direccion').value = c.direccion;
-        document.getElementById('precio').value = c.precio;
+        // Limpiamos el precio para el input numérico
+        document.getElementById('precio').value = c.precio ? c.precio.toString().replace(/[L\s,]/g, '') : "";
         document.getElementById('plan').value = c.plan;
         document.getElementById('fechaPago').value = c.fechaPago;
         document.getElementById('btnPrincipal').innerText = "🔄 ACTUALIZAR CLIENTE";
@@ -281,7 +283,6 @@
     }
 
     function limpiar() {
-        document.getElementById('editId').value = "";
         document.querySelectorAll('input').forEach(i => i.value = '');
         document.getElementById('btnPrincipal').innerText = "💾 GUARDAR NUEVO CLIENTE";
     }
@@ -291,25 +292,35 @@
         const doc = new jsPDF();
         const c = clientes[i];
         const mes = document.getElementById('mesSeleccionado').value;
+        doc.setFontSize(20);
         doc.text("NEWLINK WIRELESS", 20, 20);
-        doc.text(`Recibo: ${mes.toUpperCase()} - ${c.nombre}`, 20, 40);
-        doc.text(`Monto: $${c.precio}`, 20, 50);
+        doc.setFontSize(12);
+        doc.text(`Recibo de Pago: ${mes.toUpperCase()}`, 20, 40);
+        doc.text(`Cliente: ${c.nombre}`, 20, 50);
+        doc.text(`Monto: ${c.precio.includes('L') ? c.precio : 'L ' + c.precio}`, 20, 60);
+        doc.text(`Plan: ${c.plan}`, 20, 70);
+        doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 20, 80);
         doc.save(`Recibo_${c.nombre}.pdf`);
     }
 
     async function eliminarUsuario(i) {
-        if(!confirm("¿Eliminar cliente?")) return;
+        const nombre = clientes[i].nombre;
+        if(!confirm(`¿Estás seguro de eliminar a ${nombre}?`)) return;
+        
         mostrarCarga(true);
-        await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "delete", id: clientes[i].id }) });
-        await cargarDatos();
+        try {
+            await fetch(WEB_APP_URL, { 
+                method: "POST", 
+                mode: "no-cors", 
+                body: JSON.stringify({ action: "delete", nombre: nombre }) 
+            });
+            await cargarDatos();
+        } catch (e) {
+            alert("Error al eliminar.");
+        }
+        mostrarCarga(false);
     }
 
     function enviarWA(i) {
         const c = clientes[i];
-        window.open(`https://wa.me/${c.telefono}?text=Hola%20${c.nombre},%20pago%20confirmado.`, '_blank');
-    }
-
-    window.onload = cargarDatos;
-</script>
-</body>
-</html>
+        const msg = `Hola ${c.nombre}, te saludamos de NewLink Wireless. Tu pago de este mes ha sido registrado con éxito. ¡Gracias por tu
