@@ -304,10 +304,20 @@
     }
 
     function enviarWA(i) {
-        const c = clientes[i];
-        const mes = document.getElementById('mesSeleccionado').value;
-        const msg = `Hola ${c.nombre}, te saludamos de NewLink Wireless. Tu pago del mes de ${mes} ha sido registrado con éxito. ¡Gracias por tu preferencia!`;
-        window.open(`https://wa.me/${c.telefono.replace(/\+/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+    const c = clientes[i];
+    const mes = document.getElementById('mesSeleccionado').value;
+    
+    // 1. Limpiamos el número: quitamos espacios, guiones o el símbolo +
+    const telefonoLimpio = c.telefono.toString().replace(/\D/g, ''); 
+    
+    // 2. Creamos el mensaje personalizado
+    const msg = `Hola ${c.nombre}, te saludamos de NewLink Wireless. Tu pago del mes de ${mes} ha sido registrado con éxito. ¡Gracias por tu preferencia!`;
+    
+    // 3. Codificamos el mensaje para que sea válido en una URL
+    const url = `https://wa.me/${telefonoLimpio}?text=${encodeURIComponent(msg)}`;
+    
+    // 4. Abrimos en una pestaña nueva
+    window.open(url, '_blank');
     }
 
     // Iniciar carga al abrir
