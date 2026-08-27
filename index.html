@@ -230,7 +230,7 @@
     }
 
     /* =========================================================
-       LÓGICA DEL AVISO MASIVO (PROCESADO EN FRONTEND)
+       LÓGICA DEL AVISO MASIVO (FUNCIONES SOLICITADAS)
        ========================================================= */
     function seleccionarTodos(source) {
         const checkboxes = document.querySelectorAll('.check-cliente');
@@ -285,10 +285,12 @@
             actualizarTextoCarga(`⏳ Enviando ${i + 1} de ${telefonos.length} (${num})...`);
 
             try {
-                // Enviar número por número para evitar Timeout de red
                 await fetch(WEB_APP_URL, {
                     method: "POST",
                     mode: "no-cors",
+                    headers: {
+                        "Content-Type": "text/plain;charset=utf-8"
+                    },
                     body: JSON.stringify({
                         action: "enviar_aviso_masivo",
                         telefonos: [num],
@@ -302,11 +304,11 @@
                 console.error(`Error enviando a ${num}:`, error);
             }
 
-            // Pausa de 65 segundos en el Frontend entre clientes para respetar límite de velocidad
+            // Pausa de 65 segundos entre cada contacto
             if (i < telefonos.length - 1) {
                 let segundosRestantes = 65;
                 while (segundosRestantes > 0) {
-                    actualizarTextoCarga(`⏳ Esperando límite de velocidad API... (${segundosRestantes}s restante)`);
+                    actualizarTextoCarga(`⏳ Mensaje ${i + 1} enviado. Esperando ${segundosRestantes}s para el siguiente contacto...`);
                     await new Promise(res => setTimeout(res, 1000));
                     segundosRestantes--;
                 }
@@ -315,7 +317,7 @@
 
         mostrarCarga(false);
         actualizarTextoCarga("⏳ Procesando... Por favor espera.");
-        alert(`Proceso finalizado.\nEnvíos completados: ${enviadosExitosos} de ${telefonos.length}`);
+        alert(`Proceso finalizado.\nSe han procesado los envíos para ${enviadosExitosos} cliente(s).`);
     }
 
     function actualizarTextoCarga(texto) {
