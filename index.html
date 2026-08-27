@@ -32,9 +32,13 @@
 
         .controls { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
         .search-bar { padding: 12px; border-radius: 8px; border: 2px solid #1a73e8; width: 100%; box-sizing: border-box; }
-        .filter-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; }
+        .filter-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; align-items: center; }
         .btn-filter { padding: 8px 16px; border: none; border-radius: 15px; background: #e8f0fe; color: #1a73e8; cursor: pointer; font-weight: bold; white-space: nowrap; }
         .btn-filter.active { background: #1a73e8; color: white; }
+
+        /* Botón de Aviso Masivo */
+        .btn-aviso { background: #ff9800; color: white; font-weight: bold; border: none; border-radius: 15px; padding: 8px 16px; cursor: pointer; white-space: nowrap; margin-left: auto; }
+        .btn-aviso:hover { background: #e68a00; }
 
         .table-container { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; min-width: 1100px; }
@@ -44,6 +48,14 @@
         .no-pagado { background: #fce8e6; color: #d93025; }
         .btn-accion { padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer; margin-right: 2px; }
         .loading { text-align: center; color: #f4b400; display: none; padding: 10px; font-weight: bold; border: 1px solid #f4b400; border-radius: 8px; margin-bottom: 10px; }
+
+        /* Estilo del Modal Emergente */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 20px; border-radius: 10px; width: 450px; max-width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+        .modal-content textarea { width: 100%; box-sizing: border-box; margin-top: 10px; margin-bottom: 15px; border-radius: 6px; border: 1px solid #ccc; padding: 10px; font-family: inherit; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+        .btn-cancelar { background: #5f6368; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; }
+        .btn-enviar-modal { background: #1a73e8; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -94,6 +106,7 @@
             <button class="btn-filter" onclick="cambiarFiltro('1', this)">Día 1</button>
             <button class="btn-filter" onclick="cambiarFiltro('15', this)">Día 15</button>
             <button class="btn-filter" onclick="cambiarFiltro('Pendiente', this)" style="color:red">No Pagados</button>
+            <button class="btn-aviso" onclick="abrirModalAviso()">📢 ENVIAR AVISO A SELECCIONADOS</button>
         </div>
     </div>
 
@@ -101,6 +114,9 @@
         <table>
             <thead>
                 <tr>
+                    <th style="width: 40px; text-align: center;">
+                        <input type="checkbox" id="checkTodos" onclick="seleccionarTodos(this)">
+                    </th>
                     <th>Cliente / Dirección</th>
                     <th>WhatsApp</th>
                     <th>Precio</th>
@@ -114,8 +130,22 @@
         </table>
     </div>
 </div>
-    <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby2nBhAMrt-6jirppBjSJWLRoo_41gtc_sqDJxWY76DI4OU5G-ZeeW1rNP2qR7Ick0A/exec";
+
+<!-- Ventana Emergente (Modal) -->
+<div id="modalAviso" class="modal-overlay">
+    <div class="modal-content">
+        <h3 style="margin-top:0; color:#1a73e8;">Redactar Comunicado / Aviso</h3>
+        <p style="margin-bottom:5px; font-size:14px; color:#555;">Escriba el texto que se enviará a los clientes seleccionados:</p>
+        <textarea id="textoAviso" rows="5" placeholder="Ej: Le informamos que realizaremos un mantenimiento de fibra óptica..."></textarea>
+        <div class="modal-actions">
+            <button class="btn-cancelar" onclick="cerrarModalAviso()">Cancelar</button>
+            <button class="btn-enviar-modal" onclick="procesarEnvioAviso()">Enviar Mensajes</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby_UrHWfdlE-SdmQSs2NSgF5X5G3kfeNW6InHA98jYbFz4h9fatRoxKO6DQHzLggZfl/exec";
     let clientes = [];
     let filtroActivo = 'todos';
     
@@ -168,6 +198,9 @@
 
                 cuerpo.innerHTML += `
                     <tr>
+                        <td style="text-align: center;">
+                            <input type="checkbox" class="check-cliente" value="${c.telefono}">
+                        </td>
                         <td><b>${c.nombre}</b><br><small style="color:gray">${c.direccion || ''}</small></td>
                         <td>${c.telefono}</td>
                         <td>L ${precio.toFixed(2)}</td>
@@ -196,6 +229,77 @@
         localStorage.setItem('backup_newlink', JSON.stringify(clientes));
     }
 
+    /* =========================================================
+       LÓGICA DEL AVISO MASIVO (CHECKBOXES Y MODAL)
+       ========================================================= */
+    function seleccionarTodos(source) {
+        const checkboxes = document.querySelectorAll('.check-cliente');
+        checkboxes.forEach(cb => cb.checked = source.checked);
+    }
+
+    function obtenerTelefonosSeleccionados() {
+        const checkboxes = document.querySelectorAll('.check-cliente:checked');
+        let telefonos = [];
+        checkboxes.forEach(cb => {
+            if (cb.value && cb.value.trim() !== '') {
+                telefonos.push(cb.value.trim());
+            }
+        });
+        return telefonos;
+    }
+
+    function abrirModalAviso() {
+        const seleccionados = obtenerTelefonosSeleccionados();
+        if (seleccionados.length === 0) {
+            alert("Por favor, marque al menos la casilla de un cliente para enviar el aviso.");
+            return;
+        }
+        document.getElementById("modalAviso").style.display = "flex";
+    }
+
+    function cerrarModalAviso() {
+        document.getElementById("modalAviso").style.display = "none";
+        document.getElementById("textoAviso").value = "";
+    }
+
+    async function procesarEnvioAviso() {
+        const mensaje = document.getElementById("textoAviso").value.trim();
+        const telefonos = obtenerTelefonosSeleccionados();
+
+        if (!mensaje) {
+            alert("El mensaje no puede estar vacío.");
+            return;
+        }
+
+        if (!confirm(`¿Está seguro de enviar este aviso a ${telefonos.length} cliente(s)?`)) {
+            return;
+        }
+
+        cerrarModalAviso();
+        mostrarCarga(true);
+
+        try {
+            await fetch(WEB_APP_URL, {
+                method: "POST",
+                mode: "no-cors",
+                body: JSON.stringify({
+                    action: "enviar_aviso_masivo",
+                    telefonos: telefonos,
+                    mensaje: mensaje
+                })
+            });
+
+            alert(`Solicitud enviada para ${telefonos.length} cliente(s). Los mensajes se enviarán progresivamente con la pausa de seguridad.`);
+        } catch (error) {
+            alert("Error al enviar la orden de mensajes: " + error.message);
+        } finally {
+            mostrarCarga(false);
+        }
+    }
+
+    /* =========================================================
+       FUNCIONES DE GESTIÓN DE CLIENTES
+       ========================================================= */
     async function togglePago(i, mes) {
         const cliente = clientes[i];
         let lista = (cliente.ultimoMesPago || "").split(",").filter(x => x.trim());
@@ -304,20 +408,12 @@
     }
 
     function enviarWA(i) {
-    const c = clientes[i];
-    const mes = document.getElementById('mesSeleccionado').value;
-    
-    // 1. Limpiamos el número: quitamos espacios, guiones o el símbolo +
-    const telefonoLimpio = c.telefono.toString().replace(/\D/g, ''); 
-    
-    // 2. Creamos el mensaje personalizado
-    const msg = `Hola ${c.nombre}, te saludamos de NewLink Wireless. Tu pago del mes de ${mes} ha sido registrado con éxito. ¡Gracias por tu preferencia!`;
-    
-    // 3. Codificamos el mensaje para que sea válido en una URL
-    const url = `https://wa.me/${telefonoLimpio}?text=${encodeURIComponent(msg)}`;
-    
-    // 4. Abrimos en una pestaña nueva
-    window.open(url, '_blank');
+        const c = clientes[i];
+        const mes = document.getElementById('mesSeleccionado').value;
+        const telefonoLimpio = c.telefono.toString().replace(/\D/g, ''); 
+        const msg = `Hola ${c.nombre}, te saludamos de NewLink Wireless. Tu pago del mes de ${mes} ha sido registrado con éxito. ¡Gracias por tu preferencia!`;
+        const url = `https://wa.me/${telefonoLimpio}?text=${encodeURIComponent(msg)}`;
+        window.open(url, '_blank');
     }
 
     // Iniciar carga al abrir
@@ -325,4 +421,3 @@
 </script>
 </body>
 </html>
-
