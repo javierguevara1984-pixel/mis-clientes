@@ -230,7 +230,7 @@
     }
 
     /* =========================================================
-       LÓGICA DEL AVISO MASIVO (FUNCIONES SOLICITADAS)
+       LÓGICA DEL AVISO MASIVO (PAUSA REDUCIDA A 3 SEGUNDOS)
        ========================================================= */
     function seleccionarTodos(source) {
         const checkboxes = document.querySelectorAll('.check-cliente');
@@ -304,9 +304,9 @@
                 console.error(`Error enviando a ${num}:`, error);
             }
 
-            // Pausa de 65 segundos entre cada contacto
+            // Pausa de 3 segundos entre cada contacto
             if (i < telefonos.length - 1) {
-                let segundosRestantes = 65;
+                let segundosRestantes = 3;
                 while (segundosRestantes > 0) {
                     actualizarTextoCarga(`⏳ Mensaje ${i + 1} enviado. Esperando ${segundosRestantes}s para el siguiente contacto...`);
                     await new Promise(res => setTimeout(res, 1000));
