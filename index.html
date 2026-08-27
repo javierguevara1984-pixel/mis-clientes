@@ -49,7 +49,7 @@
         .btn-accion { padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer; margin-right: 2px; }
         .loading { text-align: center; color: #f4b400; display: none; padding: 10px; font-weight: bold; border: 1px solid #f4b400; border-radius: 8px; margin-bottom: 10px; }
 
-        /* Estilo del Modal Emergente */
+        /* Ventana Emergente (Modal) */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
         .modal-content { background: white; padding: 20px; border-radius: 10px; width: 450px; max-width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
         .modal-content textarea { width: 100%; box-sizing: border-box; margin-top: 10px; margin-bottom: 15px; border-radius: 6px; border: 1px solid #ccc; padding: 10px; font-family: inherit; }
@@ -131,7 +131,7 @@
     </div>
 </div>
 
-<!-- Ventana Emergente (Modal) -->
+<!-- Modal Emergente -->
 <div id="modalAviso" class="modal-overlay">
     <div class="modal-content">
         <h3 style="margin-top:0; color:#1a73e8;">Redactar Comunicado / Aviso</h3>
@@ -230,7 +230,7 @@
     }
 
     /* =========================================================
-       LÓGICA DEL AVISO MASIVO (CHECKBOXES Y MODAL)
+       LÓGICA DEL AVISO MASIVO (FUNCIONES SOLICITADAS)
        ========================================================= */
     function seleccionarTodos(source) {
         const checkboxes = document.querySelectorAll('.check-cliente');
@@ -251,7 +251,7 @@
     function abrirModalAviso() {
         const seleccionados = obtenerTelefonosSeleccionados();
         if (seleccionados.length === 0) {
-            alert("Por favor, marque al menos la casilla de un cliente para enviar el aviso.");
+            alert("Por favor, seleccione al menos un cliente de la lista.");
             return;
         }
         document.getElementById("modalAviso").style.display = "flex";
@@ -267,7 +267,7 @@
         const telefonos = obtenerTelefonosSeleccionados();
 
         if (!mensaje) {
-            alert("El mensaje no puede estar vacío.");
+            alert("Debe ingresar un mensaje.");
             return;
         }
 
@@ -289,16 +289,16 @@
                 })
             });
 
-            alert(`Solicitud enviada para ${telefonos.length} cliente(s). Los mensajes se enviarán progresivamente con la pausa de seguridad.`);
+            alert(`Solicitud enviada para ${telefonos.length} cliente(s). Los mensajes se enviarán en segundo plano.`);
         } catch (error) {
-            alert("Error al enviar la orden de mensajes: " + error.message);
+            alert("Error de conexión al enviar el aviso: " + error.message);
         } finally {
             mostrarCarga(false);
         }
     }
 
     /* =========================================================
-       FUNCIONES DE GESTIÓN DE CLIENTES
+       FUNCIONES EXISTENTES DE GESTIÓN
        ========================================================= */
     async function togglePago(i, mes) {
         const cliente = clientes[i];
@@ -416,7 +416,7 @@
         window.open(url, '_blank');
     }
 
-    // Iniciar carga al abrir
+    // Carga inicial
     cargarDatos();
 </script>
 </body>
