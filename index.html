@@ -230,7 +230,7 @@
     }
 
     /* =========================================================
-       LÓGICA DEL AVISO MASIVO (FUNCIONES SOLICITADAS)
+       LÓGICA DEL AVISO MASIVO (PROCESADO EN FRONTEND)
        ========================================================= */
     function seleccionarTodos(source) {
         const checkboxes = document.querySelectorAll('.check-cliente');
@@ -278,23 +278,48 @@
         cerrarModalAviso();
         mostrarCarga(true);
 
-        try {
-            await fetch(WEB_APP_URL, {
-                method: "POST",
-                mode: "no-cors",
-                body: JSON.stringify({
-                    action: "enviar_aviso_masivo",
-                    telefonos: telefonos,
-                    mensaje: mensaje
-                })
-            });
+        let enviadosExitosos = 0;
 
-            alert(`Solicitud enviada para ${telefonos.length} cliente(s). Los mensajes se enviarán en segundo plano.`);
-        } catch (error) {
-            alert("Error de conexión al enviar el aviso: " + error.message);
-        } finally {
-            mostrarCarga(false);
+        for (let i = 0; i < telefonos.length; i++) {
+            const num = telefonos[i];
+            actualizarTextoCarga(`⏳ Enviando ${i + 1} de ${telefonos.length} (${num})...`);
+
+            try {
+                // Enviar número por número para evitar Timeout de red
+                await fetch(WEB_APP_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    body: JSON.stringify({
+                        action: "enviar_aviso_masivo",
+                        telefonos: [num],
+                        mensaje: mensaje
+                    })
+                });
+
+                enviadosExitosos++;
+
+            } catch (error) {
+                console.error(`Error enviando a ${num}:`, error);
+            }
+
+            // Pausa de 65 segundos en el Frontend entre clientes para respetar límite de velocidad
+            if (i < telefonos.length - 1) {
+                let segundosRestantes = 65;
+                while (segundosRestantes > 0) {
+                    actualizarTextoCarga(`⏳ Esperando límite de velocidad API... (${segundosRestantes}s restante)`);
+                    await new Promise(res => setTimeout(res, 1000));
+                    segundosRestantes--;
+                }
+            }
         }
+
+        mostrarCarga(false);
+        actualizarTextoCarga("⏳ Procesando... Por favor espera.");
+        alert(`Proceso finalizado.\nEnvíos completados: ${enviadosExitosos} de ${telefonos.length}`);
+    }
+
+    function actualizarTextoCarga(texto) {
+        document.getElementById('statusCarga').innerText = texto;
     }
 
     /* =========================================================
