@@ -153,19 +153,32 @@
     document.getElementById('mesSeleccionado').value = meses[new Date().getMonth()];
 
     async function cargarDatos() {
-        mostrarCarga(true);
-        try {
-            const res = await fetch(`${WEB_APP_URL}?t=${Date.now()}`);
-            clientes = await res.json();
-            actualizarVista();
-        } catch (e) {
-            console.error("Error de carga", e);
-            clientes = JSON.parse(localStorage.getItem('backup_newlink')) || [];
-            actualizarVista();
+    mostrarCarga(true);
+    try {
+        const res = await fetch(`${WEB_APP_URL}?t=${Date.now()}`);
+        
+        if (!res.ok) {
+            throw new Error(`Error HTTP: ${res.status}`);
         }
-        mostrarCarga(false);
+        
+        const data = await res.json();
+        
+        if (Array.isArray(data)) {
+            clientes = data;
+        } else {
+            console.error("Respuesta inesperada del servidor:", data);
+            clientes = JSON.parse(localStorage.getItem('backup_newlink')) || [];
+        }
+        
+    } catch (e) {
+        console.error("Error de conexión al cargar datos:", e);
+        // Recuperar copia de seguridad local en caso de falla de red
+        clientes = JSON.parse(localStorage.getItem('backup_newlink')) || [];
+    } finally {
+        actualizarVista();
+        mostrarCarga(false); // Oculta el mensaje de carga obligatoriamente
     }
-
+}
     function cambiarFiltro(val, btn) {
         filtroActivo = val;
         document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
