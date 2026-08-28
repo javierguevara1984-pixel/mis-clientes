@@ -232,9 +232,6 @@
         localStorage.setItem('backup_newlink', JSON.stringify(clientes));
     }
 
-    /* =========================================================
-       ENVÍO SECUENCIAL UNO A UNO (MISMO FORMATO ORIGINAL)
-       ========================================================= */
     function seleccionarTodos(source) {
         const checkboxes = document.querySelectorAll('.check-cliente');
         checkboxes.forEach(cb => cb.checked = source.checked);
@@ -265,10 +262,8 @@
         document.getElementById("textoAviso").value = "";
     }
 
-    // Helper para meter una pausa entre peticiones sin bloquear la UI
-    const esperar = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-    async function procesarEnvioAviso() {
+    /* LÓGICA ANTERIOR CON SETTIMEOUT */
+    function procesarEnvioAviso() {
         const mensaje = document.getElementById("textoAviso").value.trim();
         const telefonos = obtenerTelefonosSeleccionados();
 
@@ -289,20 +284,13 @@
         cerrarModalAviso();
         mostrarCarga(true);
 
-        let enviados = 0;
-
-        for (let i = 0; i < telefonos.length; i++) {
-            const tel = telefonos[i];
-            actualizarTextoCarga(`⏳ Enviando ${i + 1} de ${telefonos.length} a ${tel}...`);
-
-            try {
-                // Petición individual en el formato original de tu backend
-                await fetch(WEB_APP_URL, {
+        telefonos.forEach((tel, index) => {
+            setTimeout(() => {
+                actualizarTextoCarga(`⏳ Enviando a ${tel} (${index + 1}/${telefonos.length})...`);
+                fetch(WEB_APP_URL, {
                     method: "POST",
                     mode: "no-cors",
-                    headers: {
-                        "Content-Type": "text/plain;charset=utf-8"
-                    },
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
                     body: JSON.stringify({
                         action: "enviar_aviso",
                         telefono: tel,
@@ -310,29 +298,21 @@
                     })
                 });
 
-                enviados++;
-            } catch (error) {
-                console.error(`Error al enviar mensaje a ${tel}:`, error);
-            }
-
-            // Pausa de 1.5 segundos entre cada envío para estabilidad
-            if (i < telefonos.length - 1) {
-                await esperar(1500);
-            }
-        }
-
-        mostrarCarga(false);
-        actualizarTextoCarga("⏳ Procesando... Por favor espera.");
-        alert(`Finalizado. Se procesó el envío para ${enviados} cliente(s).`);
+                if (index === telefonos.length - 1) {
+                    setTimeout(() => {
+                        mostrarCarga(false);
+                        actualizarTextoCarga("⏳ Procesando... Por favor espera.");
+                        alert("Proceso de envío finalizado.");
+                    }, 1000);
+                }
+            }, index * 3000);
+        });
     }
 
     function actualizarTextoCarga(texto) {
         document.getElementById('statusCarga').innerText = texto;
     }
 
-    /* =========================================================
-       FUNCIONES DE GESTIÓN DE CLIENTES
-       ========================================================= */
     async function togglePago(i, mes) {
         const cliente = clientes[i];
         let lista = (cliente.ultimoMesPago || "").split(",").filter(x => x.trim());
