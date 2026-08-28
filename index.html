@@ -1,435 +1,450 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NewLink Wireless - Gestión Pro</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <style>
-        body { font-family: 'Segoe UI', sans-serif; margin: 10px; background-color: #f0f2f5; color: #333; }
-        .container { max-width: 1300px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
-        h2 { color: #1a73e8; margin: 0; }
-        .selector-mes { background: #1a73e8; color: white; padding: 8px 15px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; }
-        
-        .dashboard { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
-        @media (min-width: 768px) { .dashboard { grid-template-columns: repeat(4, 1fr); } }
-        .card { padding: 12px; border-radius: 10px; text-align: center; color: white; }
-        .total-clientes { background: #1a73e8; }
-        .monto-total { background: #5f6368; }
-        .recaudado { background: #1e7e34; }
-        .pendiente { background: #d93025; }
-        .card div { font-size: 1.4em; font-weight: bold; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NewLink Wireless - Gestión Pro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 10px; background-color: #f0f2f5; color: #333; }
+        .container { max-width: 1300px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        h2 { color: #1a73e8; margin: 0; }
+        .selector-mes { background: #1a73e8; color: white; padding: 8px 15px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; }
+        
+        .dashboard { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+        @media (min-width: 768px) { .dashboard { grid-template-columns: repeat(4, 1fr); } }
+        .card { padding: 12px; border-radius: 10px; text-align: center; color: white; }
+        .total-clientes { background: #1a73e8; }
+        .monto-total { background: #5f6368; }
+        .recaudado { background: #1e7e34; }
+        .pendiente { background: #d93025; }
+        .card div { font-size: 1.4em; font-weight: bold; }
 
-        .form-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 25px; background: #f8f9fa; padding: 15px; border-radius: 10px; }
-        @media (min-width: 768px) { .form-grid { grid-template-columns: repeat(3, 1fr); } }
-        input, select, button { padding: 10px; border-radius: 6px; border: 1px solid #ddd; width: 100%; box-sizing: border-box; }
-        
-        .btn-group-form { grid-column: 1 / -1; display: flex; gap: 10px; }
-        .btn-principal { background: #1a73e8; color: white; font-weight: bold; flex: 2; border: none; cursor: pointer; height: 45px; }
-        .btn-principal:disabled { background: #ccc; cursor: not-allowed; }
-        .btn-limpiar { background: #5f6368; color: white; flex: 1; border: none; cursor: pointer; }
+        .form-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 25px; background: #f8f9fa; padding: 15px; border-radius: 10px; }
+        @media (min-width: 768px) { .form-grid { grid-template-columns: repeat(3, 1fr); } }
+        input, select, button { padding: 10px; border-radius: 6px; border: 1px solid #ddd; width: 100%; box-sizing: border-box; }
+        
+        .btn-group-form { grid-column: 1 / -1; display: flex; gap: 10px; }
+        .btn-principal { background: #1a73e8; color: white; font-weight: bold; flex: 2; border: none; cursor: pointer; height: 45px; }
+        .btn-principal:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-limpiar { background: #5f6368; color: white; flex: 1; border: none; cursor: pointer; }
 
-        .controls { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
-        .search-bar { padding: 12px; border-radius: 8px; border: 2px solid #1a73e8; width: 100%; box-sizing: border-box; }
-        .filter-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; align-items: center; }
-        .btn-filter { padding: 8px 16px; border: none; border-radius: 15px; background: #e8f0fe; color: #1a73e8; cursor: pointer; font-weight: bold; white-space: nowrap; }
-        .btn-filter.active { background: #1a73e8; color: white; }
+        .controls { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        .search-bar { padding: 12px; border-radius: 8px; border: 2px solid #1a73e8; width: 100%; box-sizing: border-box; }
+        .filter-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; align-items: center; }
+        .btn-filter { padding: 8px 16px; border: none; border-radius: 15px; background: #e8f0fe; color: #1a73e8; cursor: pointer; font-weight: bold; white-space: nowrap; }
+        .btn-filter.active { background: #1a73e8; color: white; }
 
-        .btn-aviso { background: #ff9800; color: white; font-weight: bold; border: none; border-radius: 15px; padding: 8px 16px; cursor: pointer; white-space: nowrap; margin-left: auto; }
-        .btn-aviso:hover { background: #e68a00; }
+        /* Botón de Aviso Masivo */
+        .btn-aviso { background: #ff9800; color: white; font-weight: bold; border: none; border-radius: 15px; padding: 8px 16px; cursor: pointer; white-space: nowrap; margin-left: auto; }
+        .btn-aviso:hover { background: #e68a00; }
 
-        .table-container { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; min-width: 1100px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
-        .status-badge { padding: 5px 10px; border-radius: 15px; font-size: 11px; font-weight: bold; border: none; cursor: pointer; min-width: 90px; }
-        .pagado { background: #e6f4ea; color: #1e7e34; }
-        .no-pagado { background: #fce8e6; color: #d93025; }
-        .btn-accion { padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer; margin-right: 2px; }
-        .loading { text-align: center; color: #f4b400; display: none; padding: 10px; font-weight: bold; border: 1px solid #f4b400; border-radius: 8px; margin-bottom: 10px; }
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 1100px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
+        .status-badge { padding: 5px 10px; border-radius: 15px; font-size: 11px; font-weight: bold; border: none; cursor: pointer; min-width: 90px; }
+        .pagado { background: #e6f4ea; color: #1e7e34; }
+        .no-pagado { background: #fce8e6; color: #d93025; }
+        .btn-accion { padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer; margin-right: 2px; }
+        .loading { text-align: center; color: #f4b400; display: none; padding: 10px; font-weight: bold; border: 1px solid #f4b400; border-radius: 8px; margin-bottom: 10px; }
 
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background: white; padding: 20px; border-radius: 10px; width: 450px; max-width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
-        .modal-content textarea { width: 100%; box-sizing: border-box; margin-top: 10px; margin-bottom: 15px; border-radius: 6px; border: 1px solid #ccc; padding: 10px; font-family: inherit; }
-        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
-        .btn-cancelar { background: #5f6368; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; }
-        .btn-enviar-modal { background: #1a73e8; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-    </style>
+        /* Ventana Emergente (Modal) */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 20px; border-radius: 10px; width: 450px; max-width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+        .modal-content textarea { width: 100%; box-sizing: border-box; margin-top: 10px; margin-bottom: 15px; border-radius: 6px; border: 1px solid #ccc; padding: 10px; font-family: inherit; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+        .btn-cancelar { background: #5f6368; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; }
+        .btn-enviar-modal { background: #1a73e8; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="header-flex">
-        <h2>NewLink Wireless</h2>
-        <select id="mesSeleccionado" class="selector-mes" onchange="actualizarVista()">
-            <option value="Enero">Enero</option><option value="Febrero">Febrero</option>
-            <option value="Marzo">Marzo</option><option value="Abril">Abril</option>
-            <option value="Mayo">Mayo</option><option value="Junio">Junio</option>
-            <option value="Julio">Julio</option><option value="Agosto">Agosto</option>
-            <option value="Septiembre">Septiembre</option><option value="Octubre">Octubre</option>
-            <option value="Noviembre">Noviembre</option><option value="Diciembre">Diciembre</option>
-        </select>
-    </div>
+    <div class="header-flex">
+        <h2>NewLink Wireless</h2>
+        <select id="mesSeleccionado" class="selector-mes" onchange="actualizarVista()">
+            <option value="Enero">Enero</option><option value="Febrero">Febrero</option>
+            <option value="Marzo">Marzo</option><option value="Abril">Abril</option>
+            <option value="Mayo">Mayo</option><option value="Junio">Junio</option>
+            <option value="Julio">Julio</option><option value="Agosto">Agosto</option>
+            <option value="Septiembre">Septiembre</option><option value="Octubre">Octubre</option>
+            <option value="Noviembre">Noviembre</option><option value="Diciembre">Diciembre</option>
+        </select>
+    </div>
 
-    <div class="dashboard">
-        <div class="card total-clientes"><span>CLIENTES</span><div id="cantClientes">0</div></div>
-        <div class="card monto-total"><span>TOTAL MENSUAL</span><div id="montoTotal">L 0</div></div>
-        <div class="card recaudado"><span>COBRADO</span><div id="montoPagado">L 0</div></div>
-        <div class="card pendiente"><span>POR COBRAR</span><div id="montoPendiente">L 0</div></div>
-    </div>
+    <div class="dashboard">
+        <div class="card total-clientes"><span>CLIENTES</span><div id="cantClientes">0</div></div>
+        <div class="card monto-total"><span>TOTAL MENSUAL</span><div id="montoTotal">L 0</div></div>
+        <div class="card recaudado"><span>COBRADO</span><div id="montoPagado">L 0</div></div>
+        <div class="card pendiente"><span>POR COBRAR</span><div id="montoPendiente">L 0</div></div>
+    </div>
 
-    <div id="statusCarga" class="loading">⏳ Procesando... Por favor espera.</div>
+    <div id="statusCarga" class="loading">⏳ Procesando... Por favor espera.</div>
 
-    <div class="form-grid">
-        <input type="hidden" id="editId" value="">
-        <input type="text" id="nombre" placeholder="Nombre completo">
-        <input type="tel" id="telefono" placeholder="WhatsApp">
-        <input type="text" id="direccion" placeholder="Dirección">
-        <input type="number" id="precio" placeholder="Precio L">
-        <input type="text" id="plan" placeholder="Plan contratado (Ej: 30 MB)">
-        <select id="fechaPago">
-            <option value="1">Día de pago: 1</option>
-            <option value="15">Día de pago: 15</option>
-        </select>
-        <div class="btn-group-form">
-            <button id="btnPrincipal" class="btn-principal" onclick="procesarCliente()">💾 GUARDAR CAMBIOS</button>
-            <button class="btn-limpiar" onclick="limpiar()">➕ NUEVO / LIMPIAR</button>
-        </div>
-    </div>
+    <div class="form-grid">
+        <input type="hidden" id="editId" value="">
+        <input type="text" id="nombre" placeholder="Nombre completo">
+        <input type="tel" id="telefono" placeholder="WhatsApp">
+        <input type="text" id="direccion" placeholder="Dirección">
+        <input type="number" id="precio" placeholder="Precio L">
+        <input type="text" id="plan" placeholder="Plan contratado (Ej: 30 MB)">
+        <select id="fechaPago">
+            <option value="1">Día de pago: 1</option>
+            <option value="15">Día de pago: 15</option>
+        </select>
+        <div class="btn-group-form">
+            <button id="btnPrincipal" class="btn-principal" onclick="procesarCliente()">💾 GUARDAR CAMBIOS</button>
+            <button class="btn-limpiar" onclick="limpiar()">➕ NUEVO / LIMPIAR</button>
+        </div>
+    </div>
 
-    <div class="controls">
-        <input type="text" id="buscador" class="search-bar" placeholder="🔍 Buscar por nombre..." onkeyup="actualizarVista()">
-        <div class="filter-bar">
-            <button class="btn-filter active" onclick="cambiarFiltro('todos', this)">Todos</button>
-            <button class="btn-filter" onclick="cambiarFiltro('1', this)">Día 1</button>
-            <button class="btn-filter" onclick="cambiarFiltro('15', this)">Día 15</button>
-            <button class="btn-filter" onclick="cambiarFiltro('Pendiente', this)" style="color:red">No Pagados</button>
-            <button class="btn-aviso" onclick="abrirModalAviso()">📢 ENVIAR AVISO A SELECCIONADOS</button>
-        </div>
-    </div>
+    <div class="controls">
+        <input type="text" id="buscador" class="search-bar" placeholder="🔍 Buscar por nombre..." onkeyup="actualizarVista()">
+        <div class="filter-bar">
+            <button class="btn-filter active" onclick="cambiarFiltro('todos', this)">Todos</button>
+            <button class="btn-filter" onclick="cambiarFiltro('1', this)">Día 1</button>
+            <button class="btn-filter" onclick="cambiarFiltro('15', this)">Día 15</button>
+            <button class="btn-filter" onclick="cambiarFiltro('Pendiente', this)" style="color:red">No Pagados</button>
+            <button class="btn-aviso" onclick="abrirModalAviso()">📢 ENVIAR AVISO A SELECCIONADOS</button>
+        </div>
+    </div>
 
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th style="width: 40px; text-align: center;">
-                        <input type="checkbox" id="checkTodos" onclick="seleccionarTodos(this)">
-                    </th>
-                    <th>Cliente / Dirección</th>
-                    <th>WhatsApp</th>
-                    <th>Precio</th>
-                    <th>Corte</th>
-                    <th>Estado Pago</th>
-                    <th>Plan</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody id="cuerpoTabla"></tbody>
-        </table>
-    </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 40px; text-align: center;">
+                        <input type="checkbox" id="checkTodos" onclick="seleccionarTodos(this)">
+                    </th>
+                    <th>Cliente / Dirección</th>
+                    <th>WhatsApp</th>
+                    <th>Precio</th>
+                    <th>Corte</th>
+                    <th>Estado Pago</th>
+                    <th>Plan</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="cuerpoTabla"></tbody>
+        </table>
+    </div>
 </div>
 
+<!-- Modal Emergente -->
 <div id="modalAviso" class="modal-overlay">
-    <div class="modal-content">
-        <h3 style="margin-top:0; color:#1a73e8;">Redactar Comunicado / Aviso</h3>
-        <p style="margin-bottom:5px; font-size:14px; color:#555;">Escriba el texto que se enviará a los clientes seleccionados:</p>
-        <textarea id="textoAviso" rows="5" placeholder="Ej: Le informamos que realizaremos un mantenimiento de fibra óptica..."></textarea>
-        <div class="modal-actions">
-            <button class="btn-cancelar" onclick="cerrarModalAviso()">Cancelar</button>
-            <button class="btn-enviar-modal" onclick="procesarEnvioAviso()">Enviar Mensajes</button>
-        </div>
-    </div>
+    <div class="modal-content">
+        <h3 style="margin-top:0; color:#1a73e8;">Redactar Comunicado / Aviso</h3>
+        <p style="margin-bottom:5px; font-size:14px; color:#555;">Escriba el texto que se enviará a los clientes seleccionados:</p>
+        <textarea id="textoAviso" rows="5" placeholder="Ej: Le informamos que realizaremos un mantenimiento de fibra óptica..."></textarea>
+        <div class="modal-actions">
+            <button class="btn-cancelar" onclick="cerrarModalAviso()">Cancelar</button>
+            <button class="btn-enviar-modal" onclick="procesarEnvioAviso()">Enviar Mensajes</button>
+        </div>
+    </div>
 </div>
 
 <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz6Mb_ae0yAgmJFcX6ySfmEvpsP16BWZdaq_W76zaO3aJUSBZmOrNWOs7-LZwbRo6n3/exec";
-    let clientes = [];
-    let filtroActivo = 'todos';
-    
-    const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-    document.getElementById('mesSeleccionado').value = meses[new Date().getMonth()];
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz6Mb_ae0yAgmJFcX6ySfmEvpsP16BWZdaq_W76zaO3aJUSBZmOrNWOs7-LZwbRo6n3/exec";
+    let clientes = [];
+    let filtroActivo = 'todos';
+    
+    const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    document.getElementById('mesSeleccionado').value = meses[new Date().getMonth()];
 
-    async function cargarDatos() {
-        mostrarCarga(true);
-        try {
-            const res = await fetch(`${WEB_APP_URL}?t=${Date.now()}`);
-            if (!res.ok) throw new Error(`Error HTTP: ${res.status}`);
-            const data = await res.json();
-            
-            if (Array.isArray(data)) {
-                clientes = data;
-            } else {
-                clientes = JSON.parse(localStorage.getItem('backup_newlink')) || [];
-            }
-        } catch (e) {
-            clientes = JSON.parse(localStorage.getItem('backup_newlink')) || [];
-        } finally {
-            actualizarVista();
-            mostrarCarga(false);
-        }
-    }
+    async function cargarDatos() {
+        mostrarCarga(true);
+        try {
+            const res = await fetch(`${WEB_APP_URL}?t=${Date.now()}`);
+            clientes = await res.json();
+            actualizarVista();
+        } catch (e) {
+            console.error("Error de carga", e);
+            clientes = JSON.parse(localStorage.getItem('backup_newlink')) || [];
+            actualizarVista();
+        }
+        mostrarCarga(false);
+    }
 
-    function cambiarFiltro(val, btn) {
-        filtroActivo = val;
-        document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        actualizarVista();
-    }
+    function cambiarFiltro(val, btn) {
+        filtroActivo = val;
+        document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        actualizarVista();
+    }
 
-    function actualizarVista() {
-        const cuerpo = document.getElementById('cuerpoTabla');
-        cuerpo.innerHTML = ""; 
-        
-        const busqueda = document.getElementById('buscador').value.toLowerCase();
-        const mesFiltro = document.getElementById('mesSeleccionado').value;
-        
-        let t = 0, p = 0, pen = 0, cant = 0;
+    function actualizarVista() {
+        const cuerpo = document.getElementById('cuerpoTabla');
+        cuerpo.innerHTML = ""; 
+        
+        const busqueda = document.getElementById('buscador').value.toLowerCase();
+        const mesFiltro = document.getElementById('mesSeleccionado').value;
+        
+        let t = 0, p = 0, pen = 0, cant = 0;
 
-        clientes.forEach((c, i) => {
-            const estaPagado = (c.ultimoMesPago || "").includes(mesFiltro);
-            const precioLimpio = c.precio ? c.precio.toString().replace(/[L\s,]/g, '') : 0;
-            const precio = parseFloat(precioLimpio) || 0;
+        clientes.forEach((c, i) => {
+            const estaPagado = (c.ultimoMesPago || "").includes(mesFiltro);
+            const precioLimpio = c.precio ? c.precio.toString().replace(/[L\s,]/g, '') : 0;
+            const precio = parseFloat(precioLimpio) || 0;
 
-            const cumpleBusqueda = c.nombre.toLowerCase().includes(busqueda);
-            const cumpleDia = (filtroActivo === 'todos' || filtroActivo === 'Pendiente' || c.fechaPago == filtroActivo);
-            const cumpleEstado = (filtroActivo !== 'Pendiente' || !estaPagado);
+            const cumpleBusqueda = c.nombre.toLowerCase().includes(busqueda);
+            const cumpleDia = (filtroActivo === 'todos' || filtroActivo === 'Pendiente' || c.fechaPago == filtroActivo);
+            const cumpleEstado = (filtroActivo !== 'Pendiente' || !estaPagado);
 
-            if (cumpleBusqueda && cumpleDia && cumpleEstado) {
-                cant++;
-                t += precio;
-                if(estaPagado) p += precio; else pen += precio;
+            if (cumpleBusqueda && cumpleDia && cumpleEstado) {
+                cant++;
+                t += precio;
+                if(estaPagado) p += precio; else pen += precio;
 
-                cuerpo.innerHTML += `
-                    <tr>
-                        <td style="text-align: center;">
-                            <input type="checkbox" class="check-cliente" value="${c.telefono}">
-                        </td>
-                        <td><b>${c.nombre}</b><br><small style="color:gray">${c.direccion || ''}</small></td>
-                        <td>${c.telefono}</td>
-                        <td>L ${precio.toFixed(2)}</td>
-                        <td>Día ${c.fechaPago}</td>
-                        <td>
-                            <button class="status-badge ${estaPagado ? 'pagado' : 'no-pagado'}" 
-                                onclick="togglePago(${i}, '${mesFiltro}')">
-                                ${estaPagado ? 'PAGADO' : 'PENDIENTE'}
-                            </button>
-                        </td>
-                        <td>${c.plan || '-'}</td>
-                        <td>
-                            <button class="btn-accion" onclick="generarRecibo(${i})">📄</button>
-                            <button class="btn-accion" onclick="editar(${i})">✏️</button>
-                            <button class="btn-accion" onclick="enviarWA(${i})">📲</button>
-                            <button class="btn-accion" style="color:red" onclick="eliminarUsuario(${i})">🗑️</button>
-                        </td>
-                    </tr>`;
-            }
-        });
+                cuerpo.innerHTML += `
+                    <tr>
+                        <td style="text-align: center;">
+                            <input type="checkbox" class="check-cliente" value="${c.telefono}">
+                        </td>
+                        <td><b>${c.nombre}</b><br><small style="color:gray">${c.direccion || ''}</small></td>
+                        <td>${c.telefono}</td>
+                        <td>L ${precio.toFixed(2)}</td>
+                        <td>Día ${c.fechaPago}</td>
+                        <td>
+                            <button class="status-badge ${estaPagado ? 'pagado' : 'no-pagado'}" 
+                                onclick="togglePago(${i}, '${mesFiltro}')">
+                                ${estaPagado ? 'PAGADO' : 'PENDIENTE'}
+                            </button>
+                        </td>
+                        <td>${c.plan || '-'}</td>
+                        <td>
+                            <button class="btn-accion" onclick="generarRecibo(${i})">📄</button>
+                            <button class="btn-accion" onclick="editar(${i})">✏️</button>
+                            <button class="btn-accion" onclick="enviarWA(${i})">📲</button>
+                            <button class="btn-accion" style="color:red" onclick="eliminarUsuario(${i})">🗑️</button>
+                        </td>
+                    </tr>`;
+            }
+        });
 
-        document.getElementById('cantClientes').innerText = cant;
-        document.getElementById('montoTotal').innerText = `L ${t.toLocaleString()}`;
-        document.getElementById('montoPagado').innerText = `L ${p.toLocaleString()}`;
-        document.getElementById('montoPendiente').innerText = `L ${pen.toLocaleString()}`;
-        localStorage.setItem('backup_newlink', JSON.stringify(clientes));
-    }
+        document.getElementById('cantClientes').innerText = cant;
+        document.getElementById('montoTotal').innerText = `L ${t.toLocaleString()}`;
+        document.getElementById('montoPagado').innerText = `L ${p.toLocaleString()}`;
+        document.getElementById('montoPendiente').innerText = `L ${pen.toLocaleString()}`;
+        localStorage.setItem('backup_newlink', JSON.stringify(clientes));
+    }
 
-    function seleccionarTodos(source) {
-        const checkboxes = document.querySelectorAll('.check-cliente');
-        checkboxes.forEach(cb => cb.checked = source.checked);
-    }
+    /* =========================================================
+       LÓGICA DEL AVISO MASIVO (PAUSA REDUCIDA A 3 SEGUNDOS)
+       ========================================================= */
+    function seleccionarTodos(source) {
+        const checkboxes = document.querySelectorAll('.check-cliente');
+        checkboxes.forEach(cb => cb.checked = source.checked);
+    }
 
-    function obtenerTelefonosSeleccionados() {
-        const checkboxes = document.querySelectorAll('.check-cliente:checked');
-        let telefonos = [];
-        checkboxes.forEach(cb => {
-            if (cb.value && cb.value.trim() !== '') {
-                telefonos.push(cb.value.trim());
-            }
-        });
-        return telefonos;
-    }
+    function obtenerTelefonosSeleccionados() {
+        const checkboxes = document.querySelectorAll('.check-cliente:checked');
+        let telefonos = [];
+        checkboxes.forEach(cb => {
+            if (cb.value && cb.value.trim() !== '') {
+                telefonos.push(cb.value.trim());
+            }
+        });
+        return telefonos;
+    }
 
-    function abrirModalAviso() {
-        const seleccionados = obtenerTelefonosSeleccionados();
-        if (seleccionados.length === 0) {
-            alert("Por favor, seleccione al menos un cliente de la lista.");
-            return;
-        }
-        document.getElementById("modalAviso").style.display = "flex";
-    }
+    function abrirModalAviso() {
+        const seleccionados = obtenerTelefonosSeleccionados();
+        if (seleccionados.length === 0) {
+            alert("Por favor, seleccione al menos un cliente de la lista.");
+            return;
+        }
+        document.getElementById("modalAviso").style.display = "flex";
+    }
 
-    function cerrarModalAviso() {
-        document.getElementById("modalAviso").style.display = "none";
-        document.getElementById("textoAviso").value = "";
-    }
+    function cerrarModalAviso() {
+        document.getElementById("modalAviso").style.display = "none";
+        document.getElementById("textoAviso").value = "";
+    }
 
-    /* LÓGICA ANTERIOR CON SETTIMEOUT */
-    function procesarEnvioAviso() {
-        const mensaje = document.getElementById("textoAviso").value.trim();
-        const telefonos = obtenerTelefonosSeleccionados();
+    async function procesarEnvioAviso() {
+        const mensaje = document.getElementById("textoAviso").value.trim();
+        const telefonos = obtenerTelefonosSeleccionados();
 
-        if (!mensaje) {
-            alert("Debe ingresar un mensaje.");
-            return;
-        }
+        if (!mensaje) {
+            alert("Debe ingresar un mensaje.");
+            return;
+        }
 
-        if (telefonos.length === 0) {
-            alert("No hay ningún cliente seleccionado.");
-            return;
-        }
+        if (!confirm(`¿Está seguro de enviar este aviso a ${telefonos.length} cliente(s)?`)) {
+            return;
+        }
 
-        if (!confirm(`¿Está seguro de enviar este aviso a ${telefonos.length} cliente(s)?`)) {
-            return;
-        }
+        cerrarModalAviso();
+        mostrarCarga(true);
 
-        cerrarModalAviso();
-        mostrarCarga(true);
+        let enviadosExitosos = 0;
 
-        telefonos.forEach((tel, index) => {
-            setTimeout(() => {
-                actualizarTextoCarga(`⏳ Enviando a ${tel} (${index + 1}/${telefonos.length})...`);
-                fetch(WEB_APP_URL, {
-                    method: "POST",
-                    mode: "no-cors",
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({
-                        action: "enviar_aviso",
-                        telefono: tel,
-                        mensaje: mensaje
-                    })
-                });
+        for (let i = 0; i < telefonos.length; i++) {
+            const num = telefonos[i];
+            actualizarTextoCarga(`⏳ Enviando ${i + 1} de ${telefonos.length} (${num})...`);
 
-                if (index === telefonos.length - 1) {
-                    setTimeout(() => {
-                        mostrarCarga(false);
-                        actualizarTextoCarga("⏳ Procesando... Por favor espera.");
-                        alert("Proceso de envío finalizado.");
-                    }, 1000);
-                }
-            }, index * 3000);
-        });
-    }
+            try {
+                await fetch(WEB_APP_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: {
+                        "Content-Type": "text/plain;charset=utf-8"
+                    },
+                    body: JSON.stringify({
+                        action: "enviar_aviso_masivo",
+                        telefonos: [num],
+                        mensaje: mensaje
+                    })
+                });
 
-    function actualizarTextoCarga(texto) {
-        document.getElementById('statusCarga').innerText = texto;
-    }
+                enviadosExitosos++;
 
-    async function togglePago(i, mes) {
-        const cliente = clientes[i];
-        let lista = (cliente.ultimoMesPago || "").split(",").filter(x => x.trim());
-        const yaPagado = lista.includes(mes);
+            } catch (error) {
+                console.error(`Error enviando a ${num}:`, error);
+            }
 
-        if (yaPagado) {
-            lista = lista.filter(x => x !== mes);
-        } else {
-            lista.push(mes);
-        }
+            // Pausa de 3 segundos entre cada contacto
+            if (i < telefonos.length - 1) {
+                let segundosRestantes = 3;
+                while (segundosRestantes > 0) {
+                    actualizarTextoCarga(`⏳ Mensaje ${i + 1} enviado. Esperando ${segundosRestantes}s para el siguiente contacto...`);
+                    await new Promise(res => setTimeout(res, 1000));
+                    segundosRestantes--;
+                }
+            }
+        }
 
-        cliente.ultimoMesPago = lista.join(",");
-        actualizarVista();
-        mostrarCarga(true);
+        mostrarCarga(false);
+        actualizarTextoCarga("⏳ Procesando... Por favor espera.");
+        alert(`Proceso finalizado.\nSe han procesado los envíos para ${enviadosExitosos} cliente(s).`);
+    }
 
-        try {
-            await fetch(WEB_APP_URL, { 
-                method: "POST", 
-                mode: "no-cors", 
-                body: JSON.stringify({ action: "upsert", ...cliente }) 
-            });
-        } catch (error) {
-            alert("Error al guardar el pago.");
-            await cargarDatos();
-        }
-        mostrarCarga(false);
-    }
+    function actualizarTextoCarga(texto) {
+        document.getElementById('statusCarga').innerText = texto;
+    }
 
-    async function procesarCliente() {
-        const btn = document.getElementById('btnPrincipal');
-        const nombreInput = document.getElementById('nombre').value.trim();
-        if(!nombreInput) return alert("El nombre es obligatorio");
+    /* =========================================================
+       FUNCIONES EXISTENTES DE GESTIÓN
+       ========================================================= */
+    async function togglePago(i, mes) {
+        const cliente = clientes[i];
+        let lista = (cliente.ultimoMesPago || "").split(",").filter(x => x.trim());
+        const yaPagado = lista.includes(mes);
 
-        const c = {
-            action: "upsert",
-            nombre: nombreInput,
-            telefono: document.getElementById('telefono').value,
-            direccion: document.getElementById('direccion').value,
-            precio: document.getElementById('precio').value,
-            plan: document.getElementById('plan').value,
-            fechaPago: document.getElementById('fechaPago').value,
-            ultimoMesPago: clientes.find(cli => cli.nombre.toLowerCase() === nombreInput.toLowerCase())?.ultimoMesPago || ""
-        };
+        if (yaPagado) {
+            lista = lista.filter(x => x !== mes);
+        } else {
+            lista.push(mes);
+        }
 
-        btn.disabled = true;
-        mostrarCarga(true);
+        cliente.ultimoMesPago = lista.join(",");
+        actualizarVista();
+        mostrarCarga(true);
 
-        try {
-            await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(c) });
-            await cargarDatos();
-            limpiar();
-        } catch (e) {
-            alert("Error de conexión.");
-        } finally {
-            btn.disabled = false;
-            mostrarCarga(false);
-        }
-    }
+        try {
+            await fetch(WEB_APP_URL, { 
+                method: "POST", 
+                mode: "no-cors", 
+                body: JSON.stringify({ action: "upsert", ...cliente }) 
+            });
+        } catch (error) {
+            alert("Error al guardar el pago.");
+            await cargarDatos();
+        }
+        mostrarCarga(false);
+    }
 
-    function editar(i) {
-        const c = clientes[i];
-        document.getElementById('nombre').value = c.nombre;
-        document.getElementById('telefono').value = c.telefono;
-        document.getElementById('direccion').value = c.direccion;
-        document.getElementById('precio').value = c.precio ? c.precio.toString().replace(/[L\s,]/g, '') : "";
-        document.getElementById('plan').value = c.plan;
-        document.getElementById('fechaPago').value = c.fechaPago;
-        document.getElementById('btnPrincipal').innerText = "🔄 ACTUALIZAR CLIENTE";
-        window.scrollTo(0,0);
-    }
+    async function procesarCliente() {
+        const btn = document.getElementById('btnPrincipal');
+        const nombreInput = document.getElementById('nombre').value.trim();
+        if(!nombreInput) return alert("El nombre es obligatorio");
 
-    function mostrarCarga(show) {
-        document.getElementById('statusCarga').style.display = show ? 'block' : 'none';
-    }
+        const c = {
+            action: "upsert",
+            nombre: nombreInput,
+            telefono: document.getElementById('telefono').value,
+            direccion: document.getElementById('direccion').value,
+            precio: document.getElementById('precio').value,
+            plan: document.getElementById('plan').value,
+            fechaPago: document.getElementById('fechaPago').value,
+            ultimoMesPago: clientes.find(cli => cli.nombre.toLowerCase() === nombreInput.toLowerCase())?.ultimoMesPago || ""
+        };
 
-    function limpiar() {
-        document.querySelectorAll('.form-grid input').forEach(i => i.value = '');
-        document.getElementById('btnPrincipal').innerText = "💾 GUARDAR CAMBIOS";
-    }
+        btn.disabled = true;
+        mostrarCarga(true);
 
-    function generarRecibo(i) {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const c = clientes[i];
-        const mes = document.getElementById('mesSeleccionado').value;
-        doc.setFontSize(20);
-        doc.text("NEWLINK WIRELESS", 20, 20);
-        doc.setFontSize(12);
-        doc.text(`Recibo de Pago: ${mes.toUpperCase()}`, 20, 40);
-        doc.text(`Cliente: ${c.nombre}`, 20, 50);
-        doc.text(`Monto: L ${c.precio}`, 20, 60);
-        doc.text(`Plan: ${c.plan}`, 20, 70);
-        doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 20, 80);
-        doc.save(`Recibo_${c.nombre}.pdf`);
-    }
+        try {
+            await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(c) });
+            await cargarDatos();
+            limpiar();
+        } catch (e) {
+            alert("Error de conexión.");
+        } finally {
+            btn.disabled = false;
+            mostrarCarga(false);
+        }
+    }
 
-    async function eliminarUsuario(i) {
-        const nombre = clientes[i].nombre;
-        if(!confirm(`¿Eliminar a ${nombre}?`)) return;
-        mostrarCarga(true);
-        try {
-            await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "delete", nombre: nombre }) });
-            await cargarDatos();
-        } catch (e) { alert("Error al eliminar."); }
-        mostrarCarga(false);
-    }
+    function editar(i) {
+        const c = clientes[i];
+        document.getElementById('nombre').value = c.nombre;
+        document.getElementById('telefono').value = c.telefono;
+        document.getElementById('direccion').value = c.direccion;
+        document.getElementById('precio').value = c.precio ? c.precio.toString().replace(/[L\s,]/g, '') : "";
+        document.getElementById('plan').value = c.plan;
+        document.getElementById('fechaPago').value = c.fechaPago;
+        document.getElementById('btnPrincipal').innerText = "🔄 ACTUALIZAR CLIENTE";
+        window.scrollTo(0,0);
+    }
 
-    function enviarWA(i) {
-        const c = clientes[i];
-        const mes = document.getElementById('mesSeleccionado').value;
-        const telefonoLimpio = c.telefono.toString().replace(/\D/g, ''); 
-        const msg = `Hola ${c.nombre}, te saludamos de NewLink Wireless. Tu pago del mes de ${mes} ha sido registrado con éxito. ¡Gracias por tu preferencia!`;
-        const url = `https://wa.me/${telefonoLimpio}?text=${encodeURIComponent(msg)}`;
-        window.open(url, '_blank');
-    }
+    function mostrarCarga(show) {
+        document.getElementById('statusCarga').style.display = show ? 'block' : 'none';
+    }
 
-    cargarDatos();
+    function limpiar() {
+        document.querySelectorAll('.form-grid input').forEach(i => i.value = '');
+        document.getElementById('btnPrincipal').innerText = "💾 GUARDAR CAMBIOS";
+    }
+
+    function generarRecibo(i) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const c = clientes[i];
+        const mes = document.getElementById('mesSeleccionado').value;
+        doc.setFontSize(20);
+        doc.text("NEWLINK WIRELESS", 20, 20);
+        doc.setFontSize(12);
+        doc.text(`Recibo de Pago: ${mes.toUpperCase()}`, 20, 40);
+        doc.text(`Cliente: ${c.nombre}`, 20, 50);
+        doc.text(`Monto: L ${c.precio}`, 20, 60);
+        doc.text(`Plan: ${c.plan}`, 20, 70);
+        doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 20, 80);
+        doc.save(`Recibo_${c.nombre}.pdf`);
+    }
+
+    async function eliminarUsuario(i) {
+        const nombre = clientes[i].nombre;
+        if(!confirm(`¿Eliminar a ${nombre}?`)) return;
+        mostrarCarga(true);
+        try {
+            await fetch(WEB_APP_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "delete", nombre: nombre }) });
+            await cargarDatos();
+        } catch (e) { alert("Error al eliminar."); }
+        mostrarCarga(false);
+    }
+
+    function enviarWA(i) {
+        const c = clientes[i];
+        const mes = document.getElementById('mesSeleccionado').value;
+        const telefonoLimpio = c.telefono.toString().replace(/\D/g, ''); 
+        const msg = `Hola ${c.nombre}, te saludamos de NewLink Wireless. Tu pago del mes de ${mes} ha sido registrado con éxito. ¡Gracias por tu preferencia!`;
+        const url = `https://wa.me/${telefonoLimpio}?text=${encodeURIComponent(msg)}`;
+        window.open(url, '_blank');
+    }
+
+    // Carga inicial
+    cargarDatos();
 </script>
 </body>
 </html>
